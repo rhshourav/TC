@@ -299,6 +299,29 @@ textarea.out-code{flex:1;background:transparent;border:none;color:var(--green);f
 ::-webkit-scrollbar{width:4px;height:4px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+
+/* ── AUTHOR CHIP (header) ── */
+.author-chip{display:flex;align-items:center;gap:6px;padding:4px 10px 4px 6px;border-radius:20px;border:1px solid var(--border2);background:var(--surface2);text-decoration:none;color:var(--text2);font-size:11px;font-weight:500;transition:all .2s;flex-shrink:0}
+.author-chip:hover{border-color:var(--accent);color:var(--accent2);background:var(--accent-dim)}
+.author-chip:hover .ac-avatar{background:var(--accent)}
+.ac-avatar{width:20px;height:20px;border-radius:50%;background:var(--surface3);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:10px;transition:background .2s;flex-shrink:0;overflow:hidden}
+.ac-avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.ac-name{line-height:1}
+.ac-gh{font-size:9px;opacity:.6;display:flex;align-items:center;gap:3px}
+
+/* ── SIDEBAR AUTHOR CARD ── */
+.sidebar-author{margin:8px;border-radius:var(--radius-lg);border:1px solid var(--border);background:var(--surface2);padding:12px;display:flex;flex-direction:column;gap:8px;flex-shrink:0}
+.sa-top{display:flex;align-items:center;gap:8px}
+.sa-avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));border:1.5px solid rgba(124,109,250,.35);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;overflow:hidden}
+.sa-avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.sa-info{flex:1;min-width:0}
+.sa-name{font-size:11px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sa-handle{font-size:9px;color:var(--muted);font-family:var(--mono)}
+.sa-bio{font-size:10px;color:var(--text2);line-height:1.5;border-top:1px solid var(--border);padding-top:8px}
+.sa-links{display:flex;gap:5px}
+.sa-link{flex:1;display:flex;align-items:center;justify-content:center;gap:4px;padding:5px 6px;border-radius:var(--radius);border:1px solid var(--border2);background:transparent;color:var(--muted);font-size:9px;font-weight:600;text-decoration:none;transition:all .15s;letter-spacing:.3px;text-transform:uppercase}
+.sa-link:hover{border-color:var(--accent);color:var(--accent2);background:var(--accent-dim)}
+.sa-link svg{flex-shrink:0}
 </style>
 </head>
 <body>
@@ -333,6 +356,19 @@ textarea.out-code{flex:1;background:transparent;border:none;color:var(--green);f
     <button class="btn btn-accent" onclick="triggerFileInput()">+ Add files</button>
     <input type="file" id="globalFileInput" multiple accept=".js,.ts,.jsx,.tsx,.html,.css,.py,.json,.md,.txt,.zip" style="display:none" onchange="handleFileInputChange(this)">
     <div class="hdr-sep"></div>
+    <a class="author-chip" href="https://github.com/rhshourav/TC" target="_blank" rel="noopener" title="View on GitHub by @rhshourav">
+      <div class="ac-avatar">
+        <img src="https://github.com/rhshourav.png" alt="rhshourav" onerror="this.parentElement.textContent='R'">
+      </div>
+      <div>
+        <div class="ac-name">rhshourav</div>
+        <div class="ac-gh">
+          <svg width="8" height="8" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          github
+        </div>
+      </div>
+    </a>
+    <div class="hdr-sep"></div>
     <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" type="button" aria-pressed="false" aria-label="Switch to light mode" title="Switch to light mode">
       <span class="tt-track-icon tt-sun" aria-hidden="true">☀️</span>
       <span class="tt-track-icon tt-moon" aria-hidden="true">🌙</span>
@@ -357,6 +393,30 @@ textarea.out-code{flex:1;background:transparent;border:none;color:var(--green);f
     </div>
 
     <div class="file-list" id="fileList"></div>
+
+    <!-- Author card -->
+    <div class="sidebar-author">
+      <div class="sa-top">
+        <div class="sa-avatar">
+          <img src="https://github.com/rhshourav.png" alt="rhshourav" onerror="this.parentElement.textContent='R'">
+        </div>
+        <div class="sa-info">
+          <div class="sa-name">Shourav</div>
+          <div class="sa-handle">@rhshourav</div>
+        </div>
+      </div>
+      <div class="sa-bio">Built TokenCrush to stop burning context window on whitespace and comments.</div>
+      <div class="sa-links">
+        <a class="sa-link" href="https://github.com/rhshourav/TC" target="_blank" rel="noopener">
+          <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          Repo
+        </a>
+        <a class="sa-link" href="https://github.com/rhshourav" target="_blank" rel="noopener">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
+          Profile
+        </a>
+      </div>
+    </div>
 
     <div class="sidebar-footer">
       <button class="compress-all-btn" id="compressAllBtn" onclick="compressAll()" disabled>
