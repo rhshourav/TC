@@ -6,9 +6,9 @@
 (function(){
   try{
     var stored=localStorage.getItem('tokencrush-theme');
-    var theme=stored||((window.matchMedia&&window.matchMedia('(prefers-color-scheme:light)').matches)?'light':'dark');
+    var theme=stored||'light';
     document.documentElement.setAttribute('data-theme',theme);
-  }catch(e){document.documentElement.setAttribute('data-theme','dark');}
+  }catch(e){document.documentElement.setAttribute('data-theme','light');}
 })();
 </script>
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
