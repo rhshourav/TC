@@ -779,6 +779,100 @@ textarea.out-code{
 @media(prefers-reduced-motion:reduce){
   *{transition:none!important;animation:none!important}
 }
+
+/* ── FOLDER TREE CONNECTOR LINES ── */
+.folder-children{position:relative}
+.folder-children::before{
+  content:'';position:absolute;left:calc(var(--tree-indent,20px) - 8px);
+  top:0;bottom:6px;width:1px;
+  background:var(--border2);pointer-events:none;
+}
+
+/* ── LINE COUNT BADGE on file items ── */
+.fi-lines{
+  font-size:9px;color:var(--muted);flex-shrink:0;
+  font-family:var(--mono);white-space:nowrap;
+}
+
+/* ── PER-FILE TOKEN CHIP in sidebar ── */
+.fi-tok{
+  font-size:9px;padding:1px 5px;border-radius:3px;
+  background:var(--surface3);color:var(--muted);
+  font-family:var(--mono);white-space:nowrap;flex-shrink:0;
+  border:1px solid var(--border);
+}
+.fi-tok.compressed{color:var(--green);background:var(--green-dim);border-color:rgba(62,207,142,.2)}
+
+/* ── GLOBAL TOKEN SUMMARY PANEL (sidebar footer) ── */
+.global-tok-panel{
+  margin:0 0 8px;padding:8px 10px;
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:var(--radius);display:none;flex-direction:column;gap:5px;
+}
+.global-tok-panel.show{display:flex}
+.gtp-title{
+  font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;
+  color:var(--muted);
+}
+.gtp-row{display:flex;align-items:center;gap:6px;font-size:10px}
+.gtp-lbl{color:var(--text2);flex:1}
+.gtp-val{font-family:var(--mono);font-weight:700;color:var(--text2)}
+.gtp-val.green{color:var(--green)}
+.gtp-val.accent{color:var(--accent2)}
+.gtp-divider{height:1px;background:var(--border);margin:2px 0}
+.gtp-lines-row{display:flex;align-items:center;gap:6px;font-size:10px}
+
+/* ── STATS TAB – extended grid (5 cards) ── */
+.stats-grid-5{
+  display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;
+  gap:6px;margin-bottom:10px;
+}
+/* ── GLOBAL STATS TAB ── */
+.global-stats-tab{
+  padding:12px 14px 10px;background:var(--surface);flex-shrink:0;
+  display:none;border-top:1px solid var(--border);
+}
+.global-stats-tab.show{display:block}
+.gst-section-title{
+  font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;
+  color:var(--muted);margin-bottom:8px;
+}
+.gst-file-table{width:100%;border-collapse:collapse;font-size:9.5px;font-family:var(--mono)}
+.gst-file-table th{
+  text-align:left;color:var(--muted);font-size:8.5px;text-transform:uppercase;
+  letter-spacing:.6px;padding:3px 5px;border-bottom:1px solid var(--border);
+  font-weight:700;
+}
+.gst-file-table td{
+  padding:4px 5px;color:var(--text2);border-bottom:1px solid var(--border);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px;
+}
+.gst-file-table td.num{text-align:right;color:var(--text)}
+.gst-file-table td.green{color:var(--green)}
+.gst-file-table td.accent{color:var(--accent2)}
+.gst-file-table tr:last-child td{border-bottom:none}
+.gst-file-table tr.total-row td{
+  font-weight:800;color:var(--text);border-top:1px solid var(--border2);
+}
+.gst-file-table .pending-cell{color:var(--muted);font-style:italic}
+/* folder-tree panel */
+.folder-tree-section{
+  margin-top:10px;border:1px solid var(--border);border-radius:var(--radius);
+  overflow:hidden;
+}
+.folder-tree-hdr{
+  padding:5px 10px;background:var(--surface2);
+  font-size:9px;font-weight:800;text-transform:uppercase;
+  letter-spacing:.8px;color:var(--muted);
+}
+.folder-tree-body{
+  padding:8px 10px;font-size:10px;font-family:var(--mono);
+  color:var(--text2);line-height:1.9;background:var(--bg);
+  white-space:pre;overflow-x:auto;
+}
+.ftr-folder{color:var(--accent2);font-weight:600}
+.ftr-file{color:var(--text2)}
+.ftr-meta{color:var(--muted);font-size:9px}
 </style>
 </head>
 <body>
@@ -896,6 +990,31 @@ textarea.out-code{
     </div>
 
     <div class="sidebar-footer">
+      <!-- Global token summary panel -->
+      <div class="global-tok-panel" id="globalTokPanel">
+        <div class="gtp-title">All Files · Summary</div>
+        <div class="gtp-row">
+          <span class="gtp-lbl">Total lines</span>
+          <span class="gtp-val accent" id="gtpLines">—</span>
+        </div>
+        <div class="gtp-divider"></div>
+        <div class="gtp-row">
+          <span class="gtp-lbl">Tokens before</span>
+          <span class="gtp-val" id="gtpTokIn">—</span>
+        </div>
+        <div class="gtp-row">
+          <span class="gtp-lbl">Tokens after</span>
+          <span class="gtp-val green" id="gtpTokOut">—</span>
+        </div>
+        <div class="gtp-row">
+          <span class="gtp-lbl">Saved</span>
+          <span class="gtp-val green" id="gtpSaved">—</span>
+        </div>
+        <div class="gtp-row">
+          <span class="gtp-lbl">Reduction</span>
+          <span class="gtp-val green" id="gtpReduction">—</span>
+        </div>
+      </div>
       <button class="compress-all-btn" id="compressAllBtn" onclick="compressAll()" disabled>
         <span>⚡</span> Compress All
       </button>
@@ -1016,6 +1135,9 @@ textarea.out-code{
       <div class="out-tab" data-tab="history" onclick="switchTab('history',this)">
         <span class="tab-icon">◷</span>History
       </div>
+      <div class="out-tab" data-tab="allstats" onclick="switchTab('allstats',this)">
+        <span class="tab-icon">⊞</span>All Stats
+      </div>
     </div>
 
     <!-- Progress strip -->
@@ -1033,6 +1155,7 @@ textarea.out-code{
       <div class="prompt-view" id="promptView"></div>
       <div class="bundle-view" id="bundleView"></div>
       <div class="history-view" id="historyView"></div>
+      <div class="diff-view" id="allstatsView"></div>
     </div>
 
     <!-- AI summary -->
@@ -1447,31 +1570,198 @@ let fileFilter='';
 function filterFiles(q){ fileFilter=q.toLowerCase(); renderFileList(); }
 
 // ─────────────────────────────────────────
-//  FILE LIST RENDER
+//  FILE LIST RENDER (tree-aware)
 // ─────────────────────────────────────────
+function countLines(content){ return content ? content.split('\n').length : 0; }
+
 function renderFileList(){
   const list=document.getElementById('fileList');
   list.innerHTML='';
   if(!files.size){ list.innerHTML='<div style="text-align:center;padding:20px 10px;font-size:10px;color:var(--muted)">No files yet</div>'; return; }
-  let shown=0;
-  files.forEach((f,id)=>{
-    if(fileFilter&&!f.name.toLowerCase().includes(fileFilter)) return;
-    shown++;
+
+  // Build a tree structure: rootItems = [ {type:'folder'|'file', id, depth} ]
+  function getChildren(parentFolderId){
+    const childFolders=[];
+    const childFiles=[];
+    for(const [id,f] of folders){ if(f.parentId===parentFolderId) childFolders.push(id); }
+    for(const [id,f] of files){ if(f.folderId===parentFolderId) childFiles.push(id); }
+    return {childFolders,childFiles};
+  }
+
+  function renderNode(parentFolderId, depth){
+    const {childFolders,childFiles}=getChildren(parentFolderId);
+    // Render child folders first
+    for(const fid of childFolders){
+      const fo=folders.get(fid); if(!fo) continue;
+      // Count files in this folder subtree
+      const subtreeFiles=[...files.values()].filter(f=>f.folderId===fid||isDescendantFolder(f.folderId,fid));
+      const div=document.createElement('div');
+      div.className='folder-item'+(depth>0?' indented':'');
+      div.dataset.depth=depth;
+      div.style.setProperty('--depth',depth);
+      div.innerHTML=`
+        <span class="folder-toggle ${fo.collapsed?'':'open'}" id="ftgl_${fid}">▶</span>
+        <span class="folder-icon">📁</span>
+        <span class="folder-name" title="${escH(getFolderPath(fid))}">${escH(fo.name)}</span>
+        <span class="folder-count">${subtreeFiles.length}</span>
+        <button class="folder-del" onclick="deleteFolder('${fid}',event)" title="Remove folder">✕</button>
+      `;
+      div.addEventListener('click',e=>{if(!e.target.classList.contains('folder-del'))toggleFolder(fid);});
+      list.appendChild(div);
+      // Children container
+      const childWrap=document.createElement('div');
+      childWrap.className='folder-children'+(fo.collapsed?' collapsed':'');
+      const childH=fo.collapsed?0:null;
+      if(childH!==null) childWrap.style.maxHeight=childH+'px';
+      list.appendChild(childWrap);
+      // Temporarily render children into childWrap
+      const savedParent=list;
+      // Use a sub-render approach: capture to fragment
+      const frag=document.createDocumentFragment();
+      const tempList={appendChild:n=>frag.appendChild(n),innerHTML:''};
+      // Swap list temporarily
+      const origInner=list.innerHTML; // not used, just render direct
+      renderNodeInto(childWrap, fid, depth+1);
+    }
+    // Render files at this level
+    for(const id of childFiles){
+      const f=files.get(id);
+      if(fileFilter&&!f.name.toLowerCase().includes(fileFilter)) continue;
+      const lines=countLines(f.content);
+      const hasDone=f.compressed!=='';
+      const div=document.createElement('div');
+      div.className='file-item'+(id===activeFileId?' active':'')+(depth>0?' indented':'');
+      div.dataset.id=id; div.dataset.depth=depth;
+      div.style.setProperty('--depth',depth);
+      let tokChip='';
+      if(hasDone){
+        const saved=f.tokenIn-f.tokenOut;
+        const pct=f.tokenIn>0?Math.round((saved/f.tokenIn)*100):0;
+        tokChip=`<span class="fi-tok compressed" title="Before: ${f.tokenIn} · After: ${f.tokenOut} · -${pct}%">${f.tokenOut}tok</span>`;
+      } else {
+        tokChip=`<span class="fi-tok" title="${f.tokenIn} tokens">${f.tokenIn}tok</span>`;
+      }
+      div.innerHTML=`
+        <span class="fi-status ${hasDone?'done':'pending'}"></span>
+        <span class="fi-icon">${getLangIcon(f.lang)}</span>
+        <span class="fi-name" title="${escH(f.name)}">${escH(f.name)}</span>
+        <span class="fi-lines">${lines.toLocaleString()}L</span>
+        ${tokChip}
+        <button class="fi-del" onclick="deleteFile('${id}',event)" title="Remove">✕</button>
+      `;
+      div.addEventListener('click',()=>selectFile(id));
+      list.appendChild(div);
+    }
+  }
+
+  function renderNodeInto(container, parentFolderId, depth){
+    const {childFolders,childFiles}=getChildren(parentFolderId);
+    for(const fid of childFolders){
+      const fo=folders.get(fid); if(!fo) continue;
+      const subtreeFiles=[...files.values()].filter(f=>f.folderId===fid||isDescendantFolder(f.folderId,fid));
+      const div=document.createElement('div');
+      div.className='folder-item indented';
+      div.dataset.depth=depth;
+      div.style.setProperty('--depth',depth);
+      div.innerHTML=`
+        <span class="folder-toggle ${fo.collapsed?'':'open'}" id="ftgl_${fid}">▶</span>
+        <span class="folder-icon">📁</span>
+        <span class="folder-name" title="${escH(getFolderPath(fid))}">${escH(fo.name)}</span>
+        <span class="folder-count">${subtreeFiles.length}</span>
+        <button class="folder-del" onclick="deleteFolder('${fid}',event)" title="Remove folder">✕</button>
+      `;
+      div.addEventListener('click',e=>{if(!e.target.classList.contains('folder-del'))toggleFolder(fid);});
+      container.appendChild(div);
+      const childWrap=document.createElement('div');
+      childWrap.className='folder-children'+(fo.collapsed?' collapsed':'');
+      container.appendChild(childWrap);
+      renderNodeInto(childWrap, fid, depth+1);
+    }
+    for(const id of childFiles){
+      const f=files.get(id);
+      if(fileFilter&&!f.name.toLowerCase().includes(fileFilter)) continue;
+      const lines=countLines(f.content);
+      const hasDone=f.compressed!=='';
+      const div=document.createElement('div');
+      div.className='file-item indented'+(id===activeFileId?' active':'');
+      div.dataset.id=id; div.dataset.depth=depth;
+      div.style.setProperty('--depth',depth);
+      let tokChip='';
+      if(hasDone){
+        const saved=f.tokenIn-f.tokenOut;
+        const pct=f.tokenIn>0?Math.round((saved/f.tokenIn)*100):0;
+        tokChip=`<span class="fi-tok compressed" title="Before: ${f.tokenIn} · After: ${f.tokenOut} · -${pct}%">${f.tokenOut}tok</span>`;
+      } else {
+        tokChip=`<span class="fi-tok" title="${f.tokenIn} tokens">${f.tokenIn}tok</span>`;
+      }
+      div.innerHTML=`
+        <span class="fi-status ${hasDone?'done':'pending'}"></span>
+        <span class="fi-icon">${getLangIcon(f.lang)}</span>
+        <span class="fi-name" title="${escH(f.name)}">${escH(f.name)}</span>
+        <span class="fi-lines">${lines.toLocaleString()}L</span>
+        ${tokChip}
+        <button class="fi-del" onclick="deleteFile('${id}',event)" title="Remove">✕</button>
+      `;
+      div.addEventListener('click',()=>selectFile(id));
+      container.appendChild(div);
+    }
+  }
+
+  // Root-level render: files with no folder first, then root folders
+  // Root-level files (folderId=null)
+  const rootFiles=[...files.entries()].filter(([,f])=>f.folderId===null);
+  const rootFolders=[...folders.entries()].filter(([,f])=>f.parentId===null);
+
+  // Root folders
+  for(const [fid] of rootFolders){
+    const fo=folders.get(fid); if(!fo) continue;
+    const subtreeFiles=[...files.values()].filter(f=>f.folderId===fid||isDescendantFolder(f.folderId,fid));
+    const div=document.createElement('div');
+    div.className='folder-item';
+    div.dataset.depth=0;
+    div.style.setProperty('--depth',0);
+    div.innerHTML=`
+      <span class="folder-toggle ${fo.collapsed?'':'open'}" id="ftgl_${fid}">▶</span>
+      <span class="folder-icon">📁</span>
+      <span class="folder-name" title="${escH(fo.name)}">${escH(fo.name)}</span>
+      <span class="folder-count">${subtreeFiles.length}</span>
+      <button class="folder-del" onclick="deleteFolder('${fid}',event)" title="Remove folder">✕</button>
+    `;
+    div.addEventListener('click',e=>{if(!e.target.classList.contains('folder-del'))toggleFolder(fid);});
+    list.appendChild(div);
+    const childWrap=document.createElement('div');
+    childWrap.className='folder-children'+(fo.collapsed?' collapsed':'');
+    list.appendChild(childWrap);
+    renderNodeInto(childWrap, fid, 1);
+  }
+
+  // Root-level files
+  for(const [id,f] of rootFiles){
+    if(fileFilter&&!f.name.toLowerCase().includes(fileFilter)) continue;
+    const lines=countLines(f.content);
+    const hasDone=f.compressed!=='';
     const div=document.createElement('div');
     div.className='file-item'+(id===activeFileId?' active':'');
-    div.dataset.id=id;
-    const hasDone=f.compressed!=='';
+    div.dataset.id=id; div.dataset.depth=0;
+    let tokChip='';
+    if(hasDone){
+      const saved=f.tokenIn-f.tokenOut;
+      const pct=f.tokenIn>0?Math.round((saved/f.tokenIn)*100):0;
+      tokChip=`<span class="fi-tok compressed" title="Before: ${f.tokenIn} · After: ${f.tokenOut} · -${pct}%">${f.tokenOut}tok</span>`;
+    } else {
+      tokChip=`<span class="fi-tok" title="${f.tokenIn} tokens">${f.tokenIn}tok</span>`;
+    }
     div.innerHTML=`
       <span class="fi-status ${hasDone?'done':'pending'}"></span>
       <span class="fi-icon">${getLangIcon(f.lang)}</span>
       <span class="fi-name" title="${escH(f.name)}">${escH(f.name)}</span>
-      <span class="fi-size">${fmtBytes(new Blob([f.content]).size)}</span>
+      <span class="fi-lines">${lines.toLocaleString()}L</span>
+      ${tokChip}
       <button class="fi-del" onclick="deleteFile('${id}',event)" title="Remove">✕</button>
     `;
     div.addEventListener('click',()=>selectFile(id));
     list.appendChild(div);
-  });
-  if(!shown) list.innerHTML='<div style="text-align:center;padding:20px 10px;font-size:10px;color:var(--muted)">No matches</div>';
+  }
 }
 
 function selectFile(id){
