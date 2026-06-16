@@ -1383,7 +1383,7 @@ function renderOutput(id){
   const f=files.get(id); if(!f||!f.compressed) return;
   document.getElementById('outEmpty').style.display='none';
   const oc=document.getElementById('outCode');
-  oc.style.display='block'; oc.value=f.compressed;
+  oc.value=f.compressed;
   document.getElementById('statsBar').style.display='block';
   const saved=f.tokenIn-f.tokenOut;
   const pct=f.tokenIn>0?Math.round((saved/f.tokenIn)*100):0;
@@ -1401,6 +1401,9 @@ function renderOutput(id){
   buildDiff(f.content,f.compressed);
   buildPromptView(f);
   buildBundleView();
+  // Re-apply the currently active tab so the correct view is shown
+  const activeTab=document.querySelector('.out-tab.active')?.dataset?.tab||'compressed';
+  switchTabByName(activeTab);
 }
 
 function renderCtxMap(ctxMap){
@@ -1522,16 +1525,36 @@ function switchTabByName(name){
   const pv=document.getElementById('promptView');
   const bv=document.getElementById('bundleView');
   const hv=document.getElementById('historyView');
+  // Hide everything first
   oc.style.display='none';
   [dv,pv,bv,hv].forEach(v=>v.classList.remove('show'));
   const f=files.get(activeFileId);
   const hasOut=f&&f.compressed;
-  document.getElementById('outEmpty').style.display=(hasOut||name==='bundle'||name==='history')?'none':'flex';
-  if(name==='compressed'&&hasOut) oc.style.display='block';
-  if(name==='diff') dv.classList.add('show');
-  if(name==='prompt') pv.classList.add('show');
-  if(name==='bundle'){ bv.classList.add('show'); buildBundleView(); }
-  if(name==='history'){ hv.classList.add('show'); buildHistoryView(); document.getElementById('outEmpty').style.display='none'; }
+  // Show the right view for the active tab
+  if(name==='compressed'){
+    if(hasOut){
+      document.getElementById('outEmpty').style.display='none';
+      oc.style.display='block';
+    } else {
+      document.getElementById('outEmpty').style.display='flex';
+    }
+  } else if(name==='diff'){
+    document.getElementById('outEmpty').style.display='none';
+    if(hasOut) buildDiff(f.content,f.compressed);
+    dv.classList.add('show');
+  } else if(name==='prompt'){
+    document.getElementById('outEmpty').style.display='none';
+    if(hasOut) buildPromptView(f);
+    pv.classList.add('show');
+  } else if(name==='bundle'){
+    document.getElementById('outEmpty').style.display='none';
+    bv.classList.add('show');
+    buildBundleView();
+  } else if(name==='history'){
+    document.getElementById('outEmpty').style.display='none';
+    hv.classList.add('show');
+    buildHistoryView();
+  }
 }
 
 function toggleCtx(){
