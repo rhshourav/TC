@@ -2,8 +2,33 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<!-- Set the color theme before first paint, so the page never flashes the wrong mode -->
+<script>
+(function(){
+  try{
+    var stored = localStorage.getItem('tokencrush-theme');
+    var theme = stored || ((window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) ? 'light' : 'dark');
+    document.documentElement.setAttribute('data-theme', theme);
+  }catch(e){
+    document.documentElement.setAttribute('data-theme','dark');
+  }
+})();
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TokenCrush — Smart Code Compressor for Claude</title>
+<meta name="description" content="TokenCrush strips whitespace, comments, and bloated identifiers from your code, then optionally lets Claude compress it further — so you can paste more files into a single prompt without burning your context window.">
+<meta name="theme-color" id="themeColorMeta" content="#0b0b0e">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%237c6dfa'/%3E%3Ctext x='32' y='44' font-size='34' text-anchor='middle' fill='white'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<!-- Open Graph / social preview -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="TokenCrush — Smart Code Compressor for Claude">
+<meta property="og:description" content="Strip whitespace, comments, and bloated identifiers from your code — then hand Claude more files per prompt without burning your context window.">
+<meta property="og:image" content="og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="TokenCrush — Smart Code Compressor for Claude">
+<meta name="twitter:description" content="Strip whitespace, comments, and bloated identifiers from your code — then hand Claude more files per prompt without burning your context window.">
+<meta name="twitter:image" content="og-image.png">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
 :root {
@@ -28,10 +53,38 @@
   --mono: 'JetBrains Mono','Fira Code','Cascadia Code',monospace;
   --radius: 8px;
   --radius-lg: 12px;
+  --shadow-card: none;
 }
+
+/* ── LIGHT MODE ── */
+:root[data-theme="light"]{
+  --bg: #f6f6f8;
+  --surface: #ffffff;
+  --surface2: #f0f0f3;
+  --surface3: #e6e6ec;
+  --border: rgba(20,20,30,0.08);
+  --border2: rgba(20,20,30,0.14);
+  --border3: rgba(20,20,30,0.24);
+  --text: #14141a;
+  --text2: #55555f;
+  --muted: #84848d;
+  --accent: #5b3fe0;
+  --accent2: #4c2fd1;
+  --accent-dim: rgba(91,63,224,0.08);
+  --green: #0c8a57;
+  --green-dim: rgba(12,138,87,0.09);
+  --red: #c4314f;
+  --amber: #9c6500;
+  --amber-dim: rgba(156,101,0,0.09);
+  --shadow-card: 0 16px 40px -12px rgba(20,20,30,0.16);
+}
+
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;overflow:hidden}
 body{background:var(--bg);color:var(--text);font-family:-apple-system,'Inter',sans-serif;font-size:13px;line-height:1.5}
+body,header,.sidebar,.sidebar-header,.sidebar-footer,.editor-panel,.editor-header,.controls-bar,.output-panel,.out-header,.out-tabs,.stats-bar,.prefix-row,.ctx-drawer,.pseudo-bar,.ai-card,.toast,.drop-zone,.file-item,textarea{
+  transition: background-color .2s ease, border-color .2s ease, color .2s ease;
+}
 
 /* ── HEADER ── */
 header{height:52px;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:14px;flex-shrink:0;position:relative;z-index:50}
@@ -46,6 +99,17 @@ header{height:52px;border-bottom:1px solid var(--border);display:flex;align-item
 .btn-accent:hover{background:var(--accent2);border-color:var(--accent2);color:#fff}
 .btn-green{background:var(--green-dim);border-color:rgba(62,207,142,.3);color:var(--green)}
 .btn-green:hover{background:rgba(62,207,142,.18);color:var(--green)}
+.hdr-sep{width:1px;height:22px;background:var(--border2);flex-shrink:0}
+.theme-toggle{position:relative;width:44px;height:24px;flex-shrink:0;padding:0;border-radius:13px;border:1px solid var(--border2);background:var(--surface2);cursor:pointer;transition:background-color .2s ease,border-color .2s ease}
+.theme-toggle:hover{border-color:var(--border3)}
+.theme-toggle:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.theme-toggle .tt-track-icon{position:absolute;top:50%;transform:translateY(-50%);font-size:10px;line-height:1;opacity:.4;transition:opacity .2s ease;pointer-events:none}
+.theme-toggle .tt-sun{left:5px}
+.theme-toggle .tt-moon{right:5px}
+.theme-toggle .tt-knob{position:absolute;z-index:1;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:var(--accent);box-shadow:0 1px 3px rgba(0,0,0,.35);transition:transform .25s cubic-bezier(.4,0,.2,1),background-color .2s ease}
+:root[data-theme="light"] .theme-toggle .tt-knob{transform:translateX(20px);background:var(--amber)}
+:root[data-theme="dark"] .theme-toggle .tt-moon{opacity:1}
+:root[data-theme="light"] .theme-toggle .tt-sun{opacity:1}
 
 /* ── LAYOUT ── */
 .workspace{display:flex;height:calc(100vh - 52px)}
@@ -97,6 +161,7 @@ header{height:52px;border-bottom:1px solid var(--border);display:flex;align-item
 .lang-badge{font-size:9px;padding:2px 7px;border-radius:4px;font-weight:600;letter-spacing:.5px;text-transform:uppercase}
 .lang-js{background:rgba(245,166,35,.15);color:var(--amber);border:1px solid rgba(245,166,35,.25)}
 .lang-html{background:rgba(240,82,82,.12);color:#f08052;border:1px solid rgba(240,82,82,.2)}
+:root[data-theme="light"] .lang-html{color:#b8401f}
 .lang-css{background:rgba(62,207,142,.12);color:var(--green);border:1px solid rgba(62,207,142,.2)}
 .lang-py{background:rgba(124,109,250,.15);color:var(--accent2);border:1px solid rgba(124,109,250,.25)}
 .lang-other{background:var(--surface3);color:var(--muted);border:1px solid var(--border2)}
@@ -210,7 +275,7 @@ textarea.out-code{flex:1;background:transparent;border:none;color:var(--green);f
 /* AI overlay */
 .ai-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);display:none;align-items:center;justify-content:center;z-index:999;backdrop-filter:blur(6px)}
 .ai-overlay.show{display:flex}
-.ai-card{background:var(--surface);border:1px solid var(--border2);border-radius:16px;padding:32px 36px;width:360px;text-align:center}
+.ai-card{background:var(--surface);border:1px solid var(--border2);border-radius:16px;padding:32px 36px;width:360px;text-align:center;box-shadow:var(--shadow-card)}
 .ai-spin{width:36px;height:36px;border:2.5px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 16px}
 @keyframes spin{to{transform:rotate(360deg)}}
 .ai-card h3{font-size:14px;font-weight:700;margin-bottom:6px}
@@ -225,7 +290,7 @@ textarea.out-code{flex:1;background:transparent;border:none;color:var(--green);f
 .ai-file-item.active{color:var(--accent2)}
 
 /* Toast */
-.toast{position:fixed;bottom:20px;right:20px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius);padding:10px 16px;font-size:12px;color:var(--text);z-index:9999;opacity:0;transform:translateY(8px);transition:all .2s;pointer-events:none}
+.toast{position:fixed;bottom:20px;right:20px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius);padding:10px 16px;font-size:12px;color:var(--text);z-index:9999;opacity:0;transform:translateY(8px);transition:all .2s;pointer-events:none;box-shadow:var(--shadow-card)}
 .toast.show{opacity:1;transform:translateY(0)}
 .toast.ok{border-color:rgba(62,207,142,.4);color:var(--green)}
 .toast.err{border-color:rgba(240,82,82,.4);color:var(--red)}
@@ -267,6 +332,12 @@ textarea.out-code{flex:1;background:transparent;border:none;color:var(--green);f
     <button class="btn btn-green" onclick="exportBundle()">Export bundle</button>
     <button class="btn btn-accent" onclick="triggerFileInput()">+ Add files</button>
     <input type="file" id="globalFileInput" multiple accept=".js,.ts,.jsx,.tsx,.html,.css,.py,.json,.md,.txt,.zip" style="display:none" onchange="handleFileInputChange(this)">
+    <div class="hdr-sep"></div>
+    <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" type="button" aria-pressed="false" aria-label="Switch to light mode" title="Switch to light mode">
+      <span class="tt-track-icon tt-sun" aria-hidden="true">☀️</span>
+      <span class="tt-track-icon tt-moon" aria-hidden="true">🌙</span>
+      <span class="tt-knob" aria-hidden="true"></span>
+    </button>
   </div>
 </header>
 
@@ -446,6 +517,36 @@ function showToast(msg, type='ok', dur=2500){
 
 function setProgress(pct){ document.getElementById('progressFill').style.width=pct+'%'; }
 function setAIProg(pct,stage){ document.getElementById('aiProg').style.width=pct+'%'; document.getElementById('aiStage').textContent=stage||''; }
+
+// ─────────────────────────────────────────────
+//  THEME (light / dark)
+// ─────────────────────────────────────────────
+const THEME_KEY='tokencrush-theme';
+function loadStoredTheme(){ try{ return localStorage.getItem(THEME_KEY); }catch(e){ return null; } }
+function storeTheme(t){ try{ localStorage.setItem(THEME_KEY,t); }catch(e){ /* storage blocked (e.g. private/sandboxed view) — theme still works for this session */ } }
+function applyTheme(theme){
+  document.documentElement.setAttribute('data-theme',theme);
+  const toggle=document.getElementById('themeToggle');
+  if(toggle){
+    const next = theme==='light' ? 'dark' : 'light';
+    toggle.setAttribute('aria-pressed', theme==='light');
+    toggle.title = 'Switch to '+next+' mode';
+    toggle.setAttribute('aria-label','Switch to '+next+' mode');
+  }
+  const meta=document.getElementById('themeColorMeta');
+  if(meta) meta.setAttribute('content', theme==='light' ? '#f6f6f8' : '#0b0b0e');
+}
+function toggleTheme(){
+  const next=(document.documentElement.getAttribute('data-theme')||'dark')==='dark'?'light':'dark';
+  applyTheme(next);
+  storeTheme(next);
+}
+// Keep in sync with the OS theme if the person hasn't picked one manually
+try{
+  window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', e=>{
+    if(!loadStoredTheme()) applyTheme(e.matches?'light':'dark');
+  });
+}catch(e){}
 
 // ─────────────────────────────────────────────
 //  FILE MANAGEMENT
@@ -1095,6 +1196,7 @@ function clearAll(){
 }
 
 // Init
+applyTheme(document.documentElement.getAttribute('data-theme')||'dark');
 updateFileCount();
 </script>
 </body>
