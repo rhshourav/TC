@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<!-- Set the color theme before first paint, so the page never flashes the wrong mode -->
+<script>
+(function(){
+  try{
+    var stored = localStorage.getItem('tokencrush-theme');
+    var theme = stored || ((window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) ? 'light' : 'dark');
+    document.documentElement.setAttribute('data-theme', theme);
+  }catch(e){
+    document.documentElement.setAttribute('data-theme','dark');
+  }
+})();
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>404 — Page not found · TokenCrush</title>
+<meta name="description" content="This page doesn't exist. Head back to TokenCrush to compress your code for Claude.">
+<meta name="robots" content="noindex">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%235b3fe0'/%3E%3Cpath d='M35 8 L18 36 L29 36 L26 56 L47 26 L35 26 Z' fill='%23ffffff'/%3E%3C/svg%3E">
+<style>
+  :root{
+    --bg: #0b0b0e;
+    --surface: #141418;
+    --border: rgba(255,255,255,0.07);
+    --text: #ededf0;
+    --text2: #a0a0aa;
+    --accent: #7c6dfa;
+    --shadow-card: none;
+  }
+  :root[data-theme="light"]{
+    --bg: #f6f6f8;
+    --surface: #ffffff;
+    --border: rgba(20,20,30,0.08);
+    --text: #14141a;
+    --text2: #55555f;
+    --accent: #5b3fe0;
+    --shadow-card: 0 16px 40px -12px rgba(20,20,30,0.16);
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;margin:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+  }
+  .card{
+    width:100%;
+    max-width:440px;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:16px;
+    padding:40px 32px;
+    text-align:center;
+    box-shadow:var(--shadow-card);
+  }
+  .mark{
+    width:52px;
+    height:52px;
+    border-radius:13px;
+    background:var(--accent);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    margin:0 auto 20px;
+  }
+  .mark svg{width:26px;height:26px;display:block;}
+  .code{
+    font-size:13px;
+    font-weight:700;
+    letter-spacing:.08em;
+    color:var(--accent);
+    margin:0 0 8px;
+  }
+  h1{
+    font-size:21px;
+    font-weight:650;
+    margin:0 0 10px;
+    letter-spacing:-.01em;
+  }
+  p{
+    font-size:14px;
+    line-height:1.55;
+    color:var(--text2);
+    margin:0 0 28px;
+  }
+  .btn{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    background:var(--accent);
+    color:#fff;
+    text-decoration:none;
+    font-size:14px;
+    font-weight:600;
+    padding:11px 20px;
+    border-radius:10px;
+    transition:opacity .15s ease;
+  }
+  .btn:hover{opacity:.88;}
+  .btn:focus-visible{outline:2px solid var(--accent);outline-offset:3px;}
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="mark">
+      <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M35 8 L18 36 L29 36 L26 56 L47 26 L35 26 Z" fill="#ffffff"/>
+      </svg>
+    </div>
+    <p class="code">404</p>
+    <h1>This page got compressed a little too hard.</h1>
+    <p>The page you're looking for doesn't exist or may have moved. Let's get you back to compressing code.</p>
+    <a class="btn" href="/">← Back to TokenCrush</a>
+  </div>
+</body>
+</html>
