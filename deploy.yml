@@ -1,8 +1,8 @@
 name: Validate & Deploy to GitHub Pages
 
-# Runs on every push/PR (so a bad commit fails loudly), but only
-# deploys when main itself moves. Manual runs are always available
-# from the Actions tab via "Run workflow".
+# Runs on every push/PR so bad commits fail loudly.
+# Only deploys when main itself moves.
+# Manual runs always available from the Actions tab.
 on:
   push:
     branches: [main]
@@ -12,44 +12,89 @@ on:
 
 permissions:
   contents: read
-  pages: write
+  pages:   write
   id-token: write
 
-# If two deploys are queued, only the newest one matters — cancel the rest.
+# If two deploys are queued, only the newest one matters.
 concurrency:
   group: pages
   cancel-in-progress: true
 
 jobs:
+  # ────────────────────────────────────────────────────────────
+  #  JOB 1 — Validate
+  # ────────────────────────────────────────────────────────────
   validate:
-    name: Validate HTML
+    name: Validate HTML & Assets
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # ── HTML linting ──────────────────────────────────────────
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - name: Lint index.html
-        run: npx --yes html-validate@8 index.html
+      - name: Lint docs/index.html
+        run: npx --yes html-validate@8 docs/index.html
 
-      - name: Check for broken local links/assets
+      # ── Required asset check ──────────────────────────────────
+      - name: Check required assets exist in docs/
         run: |
-          for f in og-image.png apple-touch-icon.png; do
-            test -f "$f" || { echo "::error::Missing referenced asset: $f"; exit 1; }
+          MISSING=0
+          for f in docs/og-image.png docs/apple-touch-icon.png docs/robots.txt docs/404.html; do
+            if [ ! -f "$f" ]; then
+              echo "::error file=$f::Missing required asset: $f"
+              MISSING=1
+            else
+              echo "✅  $f"
+            fi
           done
+          exit $MISSING
 
+      # ── Dead-link / broken-href check ─────────────────────────
+      - name: Check internal hrefs resolve
+        run: |
+          python3 - <<'PY'
+          import re, sys, pathlib
+
+          root = pathlib.Path("docs")
+          html = (root / "index.html").read_text(encoding="utf-8")
+
+          # Grab href/src values that look like local paths (no http/# only)
+          refs = re.findall(r'(?:href|src)=["\']([^"\'#][^"\']*)["\']', html)
+          local = [r for r in refs if not r.startswith(("http", "//", "mailto", "data:", "javascript"))]
+
+          missing = []
+          for ref in local:
+              target = (root / ref).resolve()
+              if not target.exists():
+                  missing.append(ref)
+
+          if missing:
+              for m in missing:
+                  print(f"::error::Broken local reference in index.html: {m}")
+              sys.exit(1)
+          else:
+              print(f"✅  All {len(local)} local references resolve.")
+          PY
+
+  # ────────────────────────────────────────────────────────────
+  #  JOB 2 — Deploy (main branch only)
+  # ────────────────────────────────────────────────────────────
   deploy:
-    name: Deploy
+    name: Deploy to GitHub Pages
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: validate
     runs-on: ubuntu-latest
+
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -57,10 +102,11 @@ jobs:
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
-      - name: Upload site
+      # Only the docs/ folder is published — not the whole repo
+      - name: Upload docs/ as Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: '.'
+          path: docs
 
       - name: Deploy to GitHub Pages
         id: deployment
