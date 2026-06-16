@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TokenCrush — Smart Code Compressor for Claude</title>
+<style>
+  :root {
+    --bg: #0d0d0f;
+    --surface: #18181c;
+    --surface2: #22222a;
+    --border: rgba(255,255,255,0.08);
+    --border2: rgba(255,255,255,0.14);
+    --text: #f0f0f2;
+    --muted: #888890;
+    --accent: #7c6dfa;
+    --accent2: #a393ff;
+    --green: #3ecf8e;
+    --green-dim: rgba(62,207,142,0.12);
+    --red: #f05252;
+    --amber: #f5a623;
+    --mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, 'Inter', sans-serif; font-size: 14px; line-height: 1.6; min-height: 100vh; }
+
+  /* Layout */
+  header { border-bottom: 1px solid var(--border); padding: 14px 24px; display: flex; align-items: center; gap: 16px; position: sticky; top: 0; background: var(--bg); z-index: 100; }
+  .logo { display: flex; align-items: center; gap: 10px; }
+  .logo-icon { width: 28px; height: 28px; background: var(--accent); border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 15px; }
+  .logo-text { font-weight: 600; font-size: 15px; letter-spacing: -0.3px; }
+  .logo-badge { font-size: 10px; background: rgba(124,109,250,0.2); color: var(--accent2); border: 1px solid rgba(124,109,250,0.3); border-radius: 4px; padding: 2px 7px; font-weight: 500; letter-spacing: 0.5px; }
+  .header-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+  .btn-sm { padding: 6px 14px; border-radius: 7px; border: 1px solid var(--border2); background: var(--surface); color: var(--text); font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
+  .btn-sm:hover { border-color: var(--accent); color: var(--accent2); }
+  .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn-primary:hover { background: var(--accent2); border-color: var(--accent2); color: #fff; }
+
+  main { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: auto 1fr; height: calc(100vh - 57px); }
+
+  /* Left panel */
+  .panel { display: flex; flex-direction: column; border-right: 1px solid var(--border); }
+  .panel-header { padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+  .panel-title { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; }
+  .panel-meta { margin-left: auto; font-size: 11px; color: var(--muted); }
+
+  textarea { flex: 1; background: transparent; border: none; color: var(--text); font-family: var(--mono); font-size: 12.5px; line-height: 1.65; padding: 16px; resize: none; outline: none; tab-size: 2; }
+  textarea::placeholder { color: rgba(136,136,144,0.5); }
+
+  /* Controls */
+  .controls { background: var(--surface); border-bottom: 1px solid var(--border); border-top: 1px solid var(--border); padding: 10px 16px; flex-shrink: 0; }
+  .controls-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .lang-select { background: var(--surface2); border: 1px solid var(--border2); color: var(--text); border-radius: 7px; padding: 5px 10px; font-size: 12px; cursor: pointer; outline: none; }
+  .toggle-group { display: flex; align-items: center; gap: 6px; }
+  .toggle-label { font-size: 11px; color: var(--muted); white-space: nowrap; }
+  .toggle { position: relative; width: 30px; height: 16px; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle-slider { position: absolute; inset: 0; background: var(--border2); border-radius: 8px; cursor: pointer; transition: 0.2s; }
+  .toggle-slider:before { content: ''; position: absolute; width: 12px; height: 12px; left: 2px; top: 2px; background: var(--muted); border-radius: 50%; transition: 0.2s; }
+  input:checked + .toggle-slider { background: var(--accent); }
+  input:checked + .toggle-slider:before { transform: translateX(14px); background: #fff; }
+  .divider-v { width: 1px; height: 20px; background: var(--border); }
+
+  /* AI strategy pills */
+  .strategy-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  .strategy-pill { font-size: 11px; padding: 3px 10px; border-radius: 5px; border: 1px solid var(--border2); color: var(--muted); cursor: pointer; transition: all 0.15s; display: flex; align-items: center; gap: 5px; }
+  .strategy-pill.active { border-color: var(--accent); color: var(--accent2); background: rgba(124,109,250,0.1); }
+  .strategy-pill .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+  .strategy-pill[data-s="deep"] .dot { background: #3ecf8e; }
+  .strategy-pill[data-s="deep"] { border-color: #3ecf8e44; color: #3ecf8e; }
+  .strategy-pill[data-s="deep"]:not(.active) { opacity: 0.5; }
+  .strategy-pill[data-s="deep"].active { background: rgba(62,207,142,0.1); }
+
+  .compress-btn { margin-top: 8px; width: 100%; padding: 9px; border-radius: 8px; background: var(--accent); border: none; color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; letter-spacing: 0.2px; }
+  .compress-btn:hover:not(:disabled) { background: var(--accent2); transform: translateY(-1px); }
+  .compress-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+  /* Right panel — output */
+  .output-panel { display: flex; flex-direction: column; }
+  .output-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  #outputCode { flex: 1; background: transparent; border: none; color: var(--green); font-family: var(--mono); font-size: 12.5px; line-height: 1.65; padding: 16px; resize: none; outline: none; }
+
+  /* Stats bar */
+  .stats-bar { background: var(--surface); border-top: 1px solid var(--border); padding: 10px 16px; display: flex; align-items: center; gap: 16px; flex-shrink: 0; }
+  .stat { display: flex; flex-direction: column; align-items: center; }
+  .stat-val { font-size: 18px; font-weight: 700; letter-spacing: -0.5px; }
+  .stat-val.green { color: var(--green); }
+  .stat-val.amber { color: var(--amber); }
+  .stat-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 1px; }
+  .stat-divider { width: 1px; height: 32px; background: var(--border); }
+  .savings-pill { margin-left: auto; background: var(--green-dim); color: var(--green); border: 1px solid rgba(62,207,142,0.25); border-radius: 20px; padding: 4px 14px; font-size: 12px; font-weight: 600; }
+  .copy-btn { padding: 7px 16px; background: var(--surface2); border: 1px solid var(--border2); color: var(--text); border-radius: 7px; font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+  .copy-btn:hover { border-color: var(--green); color: var(--green); }
+  .copy-btn.copied { border-color: var(--green); color: var(--green); background: var(--green-dim); }
+
+  /* Context map drawer */
+  .context-drawer { border-top: 1px solid var(--border); background: var(--surface); transition: max-height 0.3s ease; overflow: hidden; max-height: 0; flex-shrink: 0; }
+  .context-drawer.open { max-height: 240px; }
+  .context-drawer-header { padding: 8px 16px; display: flex; align-items: center; gap: 8px; cursor: pointer; border-bottom: 1px solid var(--border); }
+  .context-drawer-title { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; }
+  .context-count { font-size: 10px; background: rgba(124,109,250,0.2); color: var(--accent2); border-radius: 10px; padding: 1px 8px; }
+  .context-list { padding: 8px 16px; overflow-y: auto; max-height: 180px; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 4px; }
+  .ctx-item { display: flex; align-items: center; gap: 6px; font-size: 11px; font-family: var(--mono); padding: 3px 0; }
+  .ctx-from { color: var(--muted); text-decoration: line-through; }
+  .ctx-arrow { color: var(--border2); }
+  .ctx-to { color: var(--accent2); font-weight: 600; }
+  .ctx-tag { font-size: 9px; background: var(--surface2); border-radius: 3px; padding: 1px 5px; color: var(--muted); border: 1px solid var(--border); }
+
+  /* AI overlay */
+  .ai-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 200; backdrop-filter: blur(4px); }
+  .ai-overlay.hidden { display: none; }
+  .ai-card { background: var(--surface); border: 1px solid var(--border2); border-radius: 14px; padding: 28px 32px; width: 380px; text-align: center; }
+  .ai-spinner { width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .ai-card h3 { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+  .ai-card p { color: var(--muted); font-size: 13px; line-height: 1.5; }
+  .ai-stage { margin-top: 16px; font-size: 12px; color: var(--accent2); font-family: var(--mono); }
+
+  /* Notice banners */
+  .notice { padding: 8px 16px; font-size: 11px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; }
+  .notice.info { background: rgba(124,109,250,0.07); color: var(--accent2); }
+  .notice.warn { background: rgba(245,166,35,0.07); color: var(--amber); }
+  .notice.hidden { display: none; }
+  .notice a { color: inherit; }
+  .notice-close { margin-left: auto; cursor: pointer; opacity: 0.6; font-size: 14px; }
+
+  /* Prompt prefix builder */
+  .prefix-panel { border-top: 1px solid var(--border); background: var(--surface); padding: 10px 16px; flex-shrink: 0; }
+  .prefix-row { display: flex; align-items: center; gap: 8px; }
+  .prefix-input { flex: 1; background: var(--surface2); border: 1px solid var(--border); border-radius: 7px; color: var(--text); font-size: 12px; padding: 6px 10px; outline: none; font-family: var(--mono); }
+  .prefix-input:focus { border-color: var(--accent); }
+  .prefix-label { font-size: 11px; color: var(--muted); white-space: nowrap; }
+
+  /* Empty state */
+  .empty-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--muted); gap: 8px; }
+  .empty-state .icon { font-size: 32px; opacity: 0.3; }
+  .empty-state p { font-size: 12px; }
+
+  /* Progress bar */
+  .progress-bar { height: 2px; background: var(--border); position: relative; overflow: hidden; flex-shrink: 0; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--green)); width: 0; transition: width 0.4s ease; }
+  .progress-fill.full { width: 100%; }
+
+  /* Token gauge */
+  .gauge-wrap { flex: 1; display: flex; align-items: center; gap: 8px; }
+  .gauge-track { flex: 1; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+  .gauge-fill { height: 100%; border-radius: 2px; transition: width 0.5s ease; }
+  .gauge-fill.low { background: var(--green); }
+  .gauge-fill.mid { background: var(--amber); }
+  .gauge-fill.high { background: var(--red); }
+
+  /* Tab bar for output modes */
+  .tab-bar { display: flex; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  .tab { padding: 8px 16px; font-size: 11px; font-weight: 500; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; text-transform: uppercase; letter-spacing: 0.5px; }
+  .tab.active { color: var(--accent2); border-bottom-color: var(--accent); }
+
+  /* Diff view */
+  .diff-view { flex: 1; overflow: auto; padding: 16px; font-family: var(--mono); font-size: 12px; line-height: 1.7; display: none; }
+  .diff-view.active { display: block; }
+  #outputCode.active { display: block; }
+  #outputCode:not(.active) { display: none; }
+  .diff-line { padding: 1px 8px; border-radius: 2px; white-space: pre-wrap; word-break: break-all; }
+  .diff-line.rem { background: rgba(240,82,82,0.08); color: #f05252; }
+  .diff-line.add { background: rgba(62,207,142,0.08); color: #3ecf8e; }
+  .diff-line.ctx-l { color: var(--muted); }
+
+  /* Pseudocode section */
+  .pseudo-section { border-top: 1px solid var(--border); background: rgba(124,109,250,0.04); padding: 12px 16px; flex-shrink: 0; display: none; }
+  .pseudo-section.visible { display: block; }
+  .pseudo-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--accent); font-weight: 600; margin-bottom: 8px; }
+  .pseudo-content { font-size: 12px; color: var(--muted); font-style: italic; line-height: 1.7; max-height: 100px; overflow-y: auto; }
+</style>
+</head>
+<body>
+
+<div class="ai-overlay hidden" id="aiOverlay">
+  <div class="ai-card">
+    <div class="ai-spinner"></div>
+    <h3>Claude is analyzing your code</h3>
+    <p>Running semantic compression — summarizing logic, extracting intent, and building context map.</p>
+    <div class="ai-stage" id="aiStage">Initializing...</div>
+  </div>
+</div>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">⚡</div>
+    <div class="logo-text">TokenCrush</div>
+    <div class="logo-badge">CLAUDE-READY</div>
+  </div>
+  <div class="header-right">
+    <button class="btn-sm" onclick="loadExample()">Load example</button>
+    <button class="btn-sm" onclick="clearAll()">Clear</button>
+    <a href="https://github.com" target="_blank" style="text-decoration:none"><button class="btn-sm">⭐ GitHub Pages</button></a>
+  </div>
+</header>
+
+<div class="notice info" id="noticeBar">
+  <span>💡 Paste your code on the left. The AI layer uses Claude claude-sonnet-4-6 via the Anthropic API — no key needed here, it runs client-side via the embedded endpoint.</span>
+  <span class="notice-close" onclick="this.parentElement.classList.add('hidden')">✕</span>
+</div>
+
+<main>
+  <!-- LEFT: Input -->
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">Input</span>
+      <select class="lang-select" id="langSelect">
+        <option value="js">JavaScript / TypeScript</option>
+        <option value="html">HTML / CSS</option>
+        <option value="python">Python</option>
+        <option value="generic">Generic / Other</option>
+      </select>
+      <span class="panel-meta" id="inputMeta">0 tokens</span>
+    </div>
+
+    <div class="controls">
+      <div class="controls-row">
+        <div class="toggle-group">
+          <label class="toggle"><input type="checkbox" id="toggleWhitespace" checked><span class="toggle-slider"></span></label>
+          <span class="toggle-label">Strip whitespace</span>
+        </div>
+        <div class="divider-v"></div>
+        <div class="toggle-group">
+          <label class="toggle"><input type="checkbox" id="toggleComments" checked><span class="toggle-slider"></span></label>
+          <span class="toggle-label">Remove comments</span>
+        </div>
+        <div class="divider-v"></div>
+        <div class="toggle-group">
+          <label class="toggle"><input type="checkbox" id="toggleRename" checked><span class="toggle-slider"></span></label>
+          <span class="toggle-label">Minify names</span>
+        </div>
+        <div class="divider-v"></div>
+        <div class="toggle-group">
+          <label class="toggle"><input type="checkbox" id="toggleContext" checked><span class="toggle-slider"></span></label>
+          <span class="toggle-label">Context map</span>
+        </div>
+      </div>
+      <div class="strategy-row">
+        <span style="font-size:11px;color:var(--muted);align-self:center;">AI layer:</span>
+        <div class="strategy-pill active" data-s="none" onclick="setStrategy('none',this)"><span class="dot"></span>Off</div>
+        <div class="strategy-pill" data-s="pseudo" onclick="setStrategy('pseudo',this)"><span class="dot"></span>Pseudocode summary</div>
+        <div class="strategy-pill" data-s="semantic" onclick="setStrategy('semantic',this)"><span class="dot"></span>Semantic compress</div>
+        <div class="strategy-pill deep" data-s="deep" onclick="setStrategy('deep',this)"><span class="dot"></span>Deep compress (max)</div>
+      </div>
+      <button class="compress-btn" id="compressBtn" onclick="runCompress()">
+        <span>⚡</span> Compress Code
+      </button>
+    </div>
+
+    <textarea id="inputCode" placeholder="// Paste your JavaScript, TypeScript, HTML, CSS or any code here...
+// TokenCrush will apply smart compression strategies to minimize token count
+// while preserving full context for Claude to understand.
+
+function calculateUserMetrics(userDataArray, options = {}) {
+  const { includeInactive = false, sortBy = 'name' } = options;
+  // Filter out inactive users unless explicitly included
+  const filteredUsers = userDataArray.filter(user => {
+    if (!includeInactive && user.status === 'inactive') return false;
+    return true;
+  });
+  return filteredUsers.sort((a, b) => a[sortBy].localeCompare(b[sortBy]));
+}" oninput="updateInputMeta()"></textarea>
+  </div>
+
+  <!-- RIGHT: Output -->
+  <div class="output-panel">
+    <div class="panel-header">
+      <span class="panel-title">Output</span>
+      <span class="panel-meta" id="outputMeta">0 tokens saved</span>
+    </div>
+
+    <div class="tab-bar">
+      <div class="tab active" data-tab="compressed" onclick="switchTab('compressed',this)">Compressed</div>
+      <div class="tab" data-tab="diff" onclick="switchTab('diff',this)">Diff view</div>
+      <div class="tab" data-tab="prompt" onclick="switchTab('prompt',this)">Claude prompt</div>
+    </div>
+
+    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+
+    <div class="output-area" id="outputArea">
+      <div class="empty-state" id="emptyState">
+        <div class="icon">⚡</div>
+        <p>Compressed output will appear here</p>
+      </div>
+      <textarea id="outputCode" class="active" style="display:none" readonly></textarea>
+      <div class="diff-view" id="diffView"></div>
+      <div class="diff-view" id="promptView"></div>
+    </div>
+
+    <div class="pseudo-section" id="pseudoSection">
+      <div class="pseudo-label">AI summary — what this code does</div>
+      <div class="pseudo-content" id="pseudoContent"></div>
+    </div>
+
+    <div class="stats-bar" id="statsBar" style="display:none">
+      <div class="stat">
+        <div class="stat-val" id="statIn">0</div>
+        <div class="stat-label">Input tokens</div>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat">
+        <div class="stat-val green" id="statOut">0</div>
+        <div class="stat-label">Output tokens</div>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat">
+        <div class="stat-val amber" id="statPct">0%</div>
+        <div class="stat-label">Reduction</div>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="gauge-wrap">
+        <div class="gauge-track"><div class="gauge-fill low" id="gaugeFill" style="width:0%"></div></div>
+      </div>
+      <div class="savings-pill" id="savingsPill">-0 tok</div>
+      <button class="copy-btn" id="copyBtn" onclick="copyOutput()">Copy</button>
+    </div>
+
+    <div class="context-drawer" id="contextDrawer">
+      <div class="context-drawer-header" onclick="toggleDrawer()">
+        <span class="context-drawer-title">Context map</span>
+        <span class="context-count" id="ctxCount">0 mappings</span>
+        <span style="margin-left:auto;color:var(--muted);font-size:12px" id="drawerChev">▲</span>
+      </div>
+      <div class="context-list" id="contextList"></div>
+    </div>
+
+    <div class="prefix-panel">
+      <div class="prefix-row">
+        <span class="prefix-label">Prompt prefix:</span>
+        <input class="prefix-input" id="prefixInput" value="[COMPRESSED CODE - see context map below for identifier mappings]" />
+        <button class="btn-sm" onclick="applyPrefix()">Apply</button>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+let currentStrategy = 'none';
+let lastCompressed = '';
+let lastContextMap = [];
+let lastOriginal = '';
+let lastPseudo = '';
+
+function setStrategy(s, el) {
+  currentStrategy = s;
+  document.querySelectorAll('.strategy-pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function estimateTokens(text) {
+  if (!text) return 0;
+  return Math.ceil(text.length / 3.8);
+}
+
+function updateInputMeta() {
+  const t = estimateTokens(document.getElementById('inputCode').value);
+  document.getElementById('inputMeta').textContent = t.toLocaleString() + ' tokens';
+}
+
+function switchTab(tab, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('outputCode').style.display = 'none';
+  document.getElementById('diffView').style.display = 'none';
+  document.getElementById('promptView').style.display = 'none';
+
+  if (tab === 'compressed') document.getElementById('outputCode').style.display = lastCompressed ? 'block' : 'none';
+  if (tab === 'diff') { document.getElementById('diffView').style.display = 'block'; buildDiff(); }
+  if (tab === 'prompt') { document.getElementById('promptView').style.display = 'block'; buildPromptView(); }
+
+  if (!lastCompressed) document.getElementById('emptyState').style.display = 'flex';
+  else document.getElementById('emptyState').style.display = 'none';
+}
+
+// ---------- CORE COMPRESSION ENGINE ----------
+
+function stripCommentsJS(code) {
+  let result = '';
+  let i = 0;
+  while (i < code.length) {
+    if (code[i] === '/' && code[i+1] === '/') {
+      while (i < code.length && code[i] !== '\n') i++;
+    } else if (code[i] === '/' && code[i+1] === '*') {
+      i += 2;
+      while (i < code.length && !(code[i] === '*' && code[i+1] === '/')) i++;
+      i += 2;
+    } else if (code[i] === '"' || code[i] === "'" || code[i] === '`') {
+      const q = code[i]; result += code[i++];
+      while (i < code.length) {
+        if (code[i] === '\\') { result += code[i++]; result += code[i++]; continue; }
+        result += code[i];
+        if (code[i++] === q) break;
+      }
+    } else { result += code[i++]; }
+  }
+  return result;
+}
+
+function stripCommentsHTML(code) {
+  return code
+    .replace(/<!--[\s\S]*?-->/g, '')
+    .replace(/\/\*[\s\S]*?\*\//g, '');
+}
+
+function stripWhitespace(code, lang) {
+  if (lang === 'html') {
+    return code
+      .replace(/\s*\n\s*/g, ' ')
+      .replace(/\s{2,}/g, ' ')
+      .replace(/>\s+</g, '><')
+      .replace(/;\s+/g, ';')
+      .replace(/\{\s+/g, '{')
+      .replace(/\s+\}/g, '}')
+      .replace(/:\s+/g, ':')
+      .trim();
+  }
+  return code
+    .replace(/\r?\n\s*/g, '\n')
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\n{2,}/g, '\n')
+    .replace(/ *([=+\-*/<>!&|,;:{}()\[\]]) */g, '$1')
+    .replace(/\n([=+\-*/<>!&|,;{}()\[\]])/g, '$1')
+    .replace(/([=+\-*/<>!&|,;{}()\[\]])\n/g, '$1')
+    .trim();
+}
+
+function minifyIdentifiers(code, lang) {
+  const contextMap = [];
+  if (lang === 'html') return { code, contextMap };
+
+  const reserved = new Set([
+    'break','case','catch','class','const','continue','debugger','default',
+    'delete','do','else','export','extends','false','finally','for','function',
+    'if','import','in','instanceof','let','new','null','return','static',
+    'super','switch','this','throw','true','try','typeof','var','void','while',
+    'with','yield','async','await','of','from','get','set','arguments',
+    'undefined','NaN','Infinity','console','document','window','process',
+    'module','require','exports','Promise','Array','Object','String','Number',
+    'Boolean','Error','Math','JSON','Date','Map','Set','Symbol','Proxy',
+    'parseInt','parseFloat','isNaN','isFinite','setTimeout','clearTimeout',
+    'setInterval','clearInterval','fetch','XMLHttpRequest','addEventListener',
+    'querySelector','getElementById','length','push','pop','shift','unshift',
+    'map','filter','reduce','forEach','find','some','every','includes','indexOf',
+    'slice','splice','join','split','toString','valueOf','hasOwnProperty',
+    'prototype','constructor','keys','values','entries','assign','create',
+    'freeze','log','warn','error','info','then','catch','finally','resolve',
+    'reject','all','race','any','allSettled','next','return','throw','done',
+    'value','type','name','message','stack','code','status','data','body',
+    'headers','url','method','params','options','config','response','request',
+    'callback','event','target','src','href','id','className','style',
+    'innerHTML','textContent','append','remove','setAttribute','getAttribute',
+    'children','parentNode','nodeName','nodeType','call','apply','bind',
+    'sort','reverse','concat','flat','fill','findIndex','copyWithin',
+    'replaceAll','replace','match','test','exec','search','trimStart','trimEnd',
+    'trim','startsWith','endsWith','padStart','padEnd','repeat','charAt',
+    'charCodeAt','fromCharCode','stringify','parse','max','min','abs','ceil',
+    'floor','round','random','pow','sqrt','PI','E','sin','cos','tan',
+    'now','getTime','getFullYear','getMonth','getDate','getHours',
+    'getMinutes','getSeconds','size','has','add','delete','get','set','clear',
+    'emit','on','off','once','removeListener','removeAllListeners'
+  ]);
+
+  const identifierPattern = /\b([a-zA-Z_$][a-zA-Z0-9_$]*)\b/g;
+  const candidates = {};
+  let match;
+  const re = /\b([a-zA-Z_][a-zA-Z0-9_$]*)\b/g;
+  while ((match = re.exec(code)) !== null) {
+    const id = match[1];
+    if (!reserved.has(id) && id.length > 3) {
+      candidates[id] = (candidates[id] || 0) + 1;
+    }
+  }
+
+  const sorted = Object.entries(candidates)
+    .filter(([k,v]) => v >= 1 && k.length > 4)
+    .sort((a,b) => (b[1]*b[0].length) - (a[1]*a[0].length));
+
+  const chars = 'abcdefghijklmnopqrstuvwxyz';
+  const genName = (i) => {
+    if (i < 26) return '_' + chars[i];
+    return '_' + chars[Math.floor(i/26)-1] + chars[i%26];
+  };
+
+  const nameMap = {};
+  sorted.slice(0, 80).forEach(([id], idx) => {
+    nameMap[id] = genName(idx);
+    contextMap.push({ from: id, to: genName(idx), count: candidates[id] });
+  });
+
+  let result = code.replace(/\b([a-zA-Z_][a-zA-Z0-9_$]*)\b/g, (m) => nameMap[m] || m);
+  return { code: result, contextMap };
+}
+
+function compressCSS(code) {
+  return code
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/\s*{\s*/g, '{')
+    .replace(/\s*}\s*/g, '}')
+    .replace(/\s*:\s*/g, ':')
+    .replace(/\s*;\s*/g, ';')
+    .replace(/\s*,\s*/g, ',')
+    .replace(/\s+/g, ' ')
+    .replace(/;}/g, '}')
+    .trim();
+}
+
+function localCompress(code, lang) {
+  const doWhitespace = document.getElementById('toggleWhitespace').checked;
+  const doComments = document.getElementById('toggleComments').checked;
+  const doRename = document.getElementById('toggleRename').checked;
+
+  let result = code;
+
+  if (doComments) {
+    result = lang === 'html' ? stripCommentsHTML(result) : stripCommentsJS(result);
+  }
+  if (lang === 'html' && doWhitespace) {
+    result = stripWhitespace(result, 'html');
+  } else if (lang !== 'html' && doWhitespace) {
+    result = stripWhitespace(result, lang);
+  }
+
+  let ctxMap = [];
+  if (doRename && lang !== 'html') {
+    const r = minifyIdentifiers(result, lang);
+    result = r.code;
+    ctxMap = r.contextMap;
+  }
+
+  return { code: result, contextMap: ctxMap };
+}
+
+// ---------- AI COMPRESSION ----------
+
+async function aiCompress(code, strategy, lang) {
+  const stages = document.getElementById('aiStage');
+  stages.textContent = 'Analyzing code structure...';
+
+  const prompts = {
+    pseudo: `You are a code compression expert. Given this ${lang} code, produce TWO things:
+
+1. COMPRESSED: A heavily compressed version that removes all unnecessary syntax, merges simple operations, strips boilerplate, and reduces to bare minimum tokens while keeping the code syntactically valid and logically equivalent.
+
+2. SUMMARY: A 2-3 sentence pseudocode description of what this code does at a high level.
+
+Respond in this EXACT JSON format only (no markdown):
+{"compressed":"...escaped code here...","summary":"...summary here..."}
+
+CODE:
+${code.slice(0, 4000)}`,
+
+    semantic: `You are an expert at compressing code for AI consumption. Given this ${lang} code, rewrite it as a maximally compressed version that:
+- Collapses multi-line logic into single expressions where possible
+- Uses shorthand/ternary wherever valid
+- Removes all dead code, redundant variables, unnecessary wrappers
+- Merges small functions that are only called once (inline them)
+- Uses destructuring, spread, and arrow functions aggressively
+- Keeps all logic 100% equivalent
+
+Respond in this EXACT JSON format only (no markdown):
+{"compressed":"...escaped code here...","summary":"...brief description of what the code does..."}
+
+CODE:
+${code.slice(0, 5000)}`,
+
+    deep: `You are the world's most aggressive code token optimizer. Your goal: reduce this ${lang} code to the ABSOLUTE minimum tokens while preserving 100% of its logical behavior.
+
+Strategies to apply:
+1. Remove ALL whitespace except what's syntactically required
+2. Rename every identifier to the shortest possible name
+3. Collapse all logic: multi-line → one line, verbose → terse
+4. Inline single-use variables and functions
+5. Use bitwise/shorthand operators wherever they shorten code
+6. Destructure aggressively
+7. Chain method calls
+8. Merge related operations
+9. Use implicit returns
+10. Remove optional parentheses, semicolons (if safe)
+
+Also produce:
+- A JSON context map of all renamed identifiers: [{"from":"originalName","to":"shortName"}]
+- A one-line summary of what the code does
+
+Respond ONLY as JSON (no markdown fences):
+{"compressed":"...","contextMap":[{"from":"...","to":"..."}],"summary":"..."}
+
+CODE:
+${code.slice(0, 5000)}`
+  };
+
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 4000,
+      messages: [{ role: 'user', content: prompts[strategy] }]
+    })
+  });
+
+  stages.textContent = 'Parsing AI response...';
+  const data = await response.json();
+  const text = data.content.map(b => b.text || '').join('');
+  const clean = text.replace(/```json|```/g, '').trim();
+
+  try {
+    return JSON.parse(clean);
+  } catch(e) {
+    const jsonMatch = clean.match(/\{[\s\S]*\}/);
+    if (jsonMatch) return JSON.parse(jsonMatch[0]);
+    throw new Error('Failed to parse AI response');
+  }
+}
+
+// ---------- MAIN RUN ----------
+
+async function runCompress() {
+  const code = document.getElementById('inputCode').value.trim();
+  if (!code) return;
+
+  const lang = document.getElementById('langSelect').value;
+  const btn = document.getElementById('compressBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span>⚙️</span> Compressing...';
+
+  document.getElementById('progressFill').style.width = '30%';
+  document.getElementById('emptyState').style.display = 'none';
+  lastOriginal = code;
+
+  try {
+    let finalCode, ctxMap = [], pseudo = '';
+
+    const { code: localCode, contextMap: localCtx } = localCompress(code, lang);
+    document.getElementById('progressFill').style.width = '55%';
+
+    if (currentStrategy !== 'none') {
+      document.getElementById('aiOverlay').classList.remove('hidden');
+      const aiResult = await aiCompress(localCode, currentStrategy, lang);
+      document.getElementById('aiOverlay').classList.add('hidden');
+
+      finalCode = aiResult.compressed || localCode;
+      pseudo = aiResult.summary || '';
+      const aiCtxMap = (aiResult.contextMap || []).map(i => ({ from: i.from, to: i.to, count: 1, source: 'AI' }));
+      ctxMap = [...localCtx, ...aiCtxMap];
+    } else {
+      finalCode = localCode;
+      ctxMap = localCtx;
+    }
+
+    document.getElementById('progressFill').style.width = '90%';
+    lastCompressed = finalCode;
+    lastContextMap = ctxMap;
+    lastPseudo = pseudo;
+
+    renderOutput(finalCode, code, ctxMap, pseudo);
+    document.getElementById('progressFill').style.width = '100%';
+    setTimeout(() => document.getElementById('progressFill').style.width = '0', 800);
+
+  } catch(err) {
+    document.getElementById('aiOverlay').classList.add('hidden');
+    alert('Compression error: ' + err.message);
+    document.getElementById('progressFill').style.width = '0';
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = '<span>⚡</span> Compress Code';
+}
+
+function renderOutput(compressed, original, ctxMap, pseudo) {
+  document.getElementById('outputCode').value = compressed;
+  document.getElementById('outputCode').style.display = 'block';
+  document.getElementById('emptyState').style.display = 'none';
+
+  const inTok = estimateTokens(original);
+  const outTok = estimateTokens(compressed);
+  const saved = inTok - outTok;
+  const pct = inTok > 0 ? Math.round((saved / inTok) * 100) : 0;
+
+  document.getElementById('statIn').textContent = inTok.toLocaleString();
+  document.getElementById('statOut').textContent = outTok.toLocaleString();
+  document.getElementById('statPct').textContent = pct + '%';
+  document.getElementById('savingsPill').textContent = '-' + saved.toLocaleString() + ' tok';
+  document.getElementById('outputMeta').textContent = saved.toLocaleString() + ' tokens saved';
+  document.getElementById('statsBar').style.display = 'flex';
+
+  const gaugeEl = document.getElementById('gaugeFill');
+  const gaugeW = Math.min(100, Math.round((outTok/inTok)*100));
+  gaugeEl.style.width = gaugeW + '%';
+  gaugeEl.className = 'gauge-fill ' + (gaugeW < 40 ? 'low' : gaugeW < 70 ? 'mid' : 'high');
+
+  if (pseudo) {
+    document.getElementById('pseudoContent').textContent = pseudo;
+    document.getElementById('pseudoSection').classList.add('visible');
+  }
+
+  renderContextMap(ctxMap);
+  buildDiff(original, compressed);
+  buildPromptView(compressed, ctxMap, pseudo);
+}
+
+function renderContextMap(ctxMap) {
+  const list = document.getElementById('contextList');
+  const count = document.getElementById('ctxCount');
+  list.innerHTML = '';
+  count.textContent = ctxMap.length + ' mappings';
+
+  if (ctxMap.length > 0) {
+    ctxMap.forEach(item => {
+      const div = document.createElement('div');
+      div.className = 'ctx-item';
+      div.innerHTML = `<span class="ctx-from">${escHtml(item.from)}</span><span class="ctx-arrow">→</span><span class="ctx-to">${escHtml(item.to)}</span>${item.source === 'AI' ? '<span class="ctx-tag">AI</span>' : ''}`;
+      list.appendChild(div);
+    });
+    document.getElementById('contextDrawer').classList.add('open');
+    document.getElementById('drawerChev').textContent = '▼';
+  }
+}
+
+function buildDiff(original, compressed) {
+  original = original || lastOriginal;
+  compressed = compressed || lastCompressed;
+  if (!original || !compressed) return;
+
+  const orig = original.split('\n');
+  const comp = compressed.split('\n');
+  const el = document.getElementById('diffView');
+  el.innerHTML = '';
+
+  const removed = orig.length;
+  const added = comp.length;
+  const sample = orig.slice(0, 40);
+  sample.forEach(line => {
+    const d = document.createElement('div');
+    d.className = 'diff-line rem';
+    d.textContent = '- ' + line;
+    el.appendChild(d);
+  });
+  comp.slice(0, 40).forEach(line => {
+    const d = document.createElement('div');
+    d.className = 'diff-line add';
+    d.textContent = '+ ' + line;
+    el.appendChild(d);
+  });
+  if (orig.length > 40 || comp.length > 40) {
+    const d = document.createElement('div');
+    d.className = 'diff-line ctx-l';
+    d.textContent = `... (${orig.length} → ${comp.length} lines)`;
+    el.appendChild(d);
+  }
+}
+
+function buildPromptView(compressed, ctxMap, pseudo) {
+  compressed = compressed || lastCompressed;
+  ctxMap = ctxMap || lastContextMap;
+  pseudo = pseudo || lastPseudo;
+  if (!compressed) return;
+
+  const prefix = document.getElementById('prefixInput').value;
+  const mapStr = ctxMap.length > 0
+    ? '\n[CONTEXT MAP]\n' + ctxMap.map(i => `${i.to}=${i.from}`).join(', ')
+    : '';
+  const pseudoStr = pseudo ? '\n[LOGIC SUMMARY]\n' + pseudo : '';
+
+  const prompt = `${prefix}${pseudoStr}${mapStr}\n\n[CODE]\n${compressed}`;
+
+  const el = document.getElementById('promptView');
+  el.style.color = 'var(--text)';
+  el.style.whiteSpace = 'pre-wrap';
+  el.style.wordBreak = 'break-all';
+  el.textContent = prompt;
+}
+
+function applyPrefix() {
+  buildPromptView();
+  const tabs = document.querySelectorAll('.tab');
+  tabs.forEach(t => t.classList.remove('active'));
+  document.querySelector('[data-tab="prompt"]').classList.add('active');
+  document.getElementById('outputCode').style.display = 'none';
+  document.getElementById('diffView').style.display = 'none';
+  document.getElementById('promptView').style.display = 'block';
+}
+
+function toggleDrawer() {
+  const d = document.getElementById('contextDrawer');
+  const c = document.getElementById('drawerChev');
+  d.classList.toggle('open');
+  c.textContent = d.classList.contains('open') ? '▼' : '▲';
+}
+
+async function copyOutput() {
+  const activeTab = document.querySelector('.tab.active').dataset.tab;
+  let text = lastCompressed;
+  if (activeTab === 'prompt') {
+    const prefix = document.getElementById('prefixInput').value;
+    const mapStr = lastContextMap.length > 0
+      ? '\n[CONTEXT MAP]\n' + lastContextMap.map(i => `${i.to}=${i.from}`).join(', ')
+      : '';
+    const pseudoStr = lastPseudo ? '\n[LOGIC SUMMARY]\n' + lastPseudo : '';
+    text = `${prefix}${pseudoStr}${mapStr}\n\n[CODE]\n${lastCompressed}`;
+  }
+
+  await navigator.clipboard.writeText(text);
+  const btn = document.getElementById('copyBtn');
+  btn.textContent = '✓ Copied!';
+  btn.classList.add('copied');
+  setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+}
+
+function loadExample() {
+  document.getElementById('inputCode').value = `// User authentication service with JWT handling
+// Version 2.1 - Refactored for better error handling
+
+import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
+import { UserRepository } from './repositories/userRepository';
+import { TokenBlacklist } from './utils/tokenBlacklist';
+import { logger } from './utils/logger';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-key';
+const TOKEN_EXPIRY = process.env.TOKEN_EXPIRY || '24h';
+const REFRESH_EXPIRY = process.env.REFRESH_EXPIRY || '7d';
+const SALT_ROUNDS = 12;
+
+export class AuthenticationService {
+  constructor(private userRepository: UserRepository, private tokenBlacklist: TokenBlacklist) {}
+
+  /**
+   * Authenticates a user with email and password
+   * Returns JWT tokens if successful
+   */
+  async authenticateUser(emailAddress: string, plainTextPassword: string): Promise<AuthResult> {
+    try {
+      // Find user in database
+      const foundUser = await this.userRepository.findByEmail(emailAddress);
+      if (!foundUser) {
+        logger.warn('Authentication failed: user not found', { email: emailAddress });
+        throw new Error('Invalid credentials');
+      }
+
+      // Verify the provided password against stored hash
+      const passwordIsValid = await bcrypt.compare(plainTextPassword, foundUser.passwordHash);
+      if (!passwordIsValid) {
+        logger.warn('Authentication failed: wrong password', { userId: foundUser.id });
+        throw new Error('Invalid credentials');
+      }
+
+      // Generate access and refresh tokens
+      const accessToken = jwt.sign(
+        { userId: foundUser.id, role: foundUser.role, email: foundUser.email },
+        JWT_SECRET,
+        { expiresIn: TOKEN_EXPIRY }
+      );
+      const refreshToken = jwt.sign(
+        { userId: foundUser.id, type: 'refresh' },
+        JWT_SECRET,
+        { expiresIn: REFRESH_EXPIRY }
+      );
+
+      logger.info('User authenticated successfully', { userId: foundUser.id });
+      return { accessToken, refreshToken, user: { id: foundUser.id, email: foundUser.email, role: foundUser.role } };
+    } catch (authError) {
+      if (authError.message !== 'Invalid credentials') {
+        logger.error('Authentication error', { error: authError.message });
+      }
+      throw authError;
+    }
+  }
+
+  async refreshAccessToken(existingRefreshToken: string): Promise<string> {
+    const isBlacklisted = await this.tokenBlacklist.check(existingRefreshToken);
+    if (isBlacklisted) throw new Error('Token has been revoked');
+
+    const decodedPayload = jwt.verify(existingRefreshToken, JWT_SECRET) as RefreshPayload;
+    if (decodedPayload.type !== 'refresh') throw new Error('Invalid token type');
+
+    const userRecord = await this.userRepository.findById(decodedPayload.userId);
+    if (!userRecord) throw new Error('User not found');
+
+    return jwt.sign(
+      { userId: userRecord.id, role: userRecord.role, email: userRecord.email },
+      JWT_SECRET,
+      { expiresIn: TOKEN_EXPIRY }
+    );
+  }
+}`;
+  updateInputMeta();
+  document.getElementById('langSelect').value = 'js';
+}
+
+function clearAll() {
+  document.getElementById('inputCode').value = '';
+  document.getElementById('outputCode').value = '';
+  document.getElementById('outputCode').style.display = 'none';
+  document.getElementById('emptyState').style.display = 'flex';
+  document.getElementById('statsBar').style.display = 'none';
+  document.getElementById('contextList').innerHTML = '';
+  document.getElementById('contextDrawer').classList.remove('open');
+  document.getElementById('pseudoSection').classList.remove('visible');
+  document.getElementById('diffView').innerHTML = '';
+  document.getElementById('promptView').innerHTML = '';
+  lastCompressed = ''; lastContextMap = []; lastOriginal = ''; lastPseudo = '';
+  updateInputMeta();
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+updateInputMeta();
+</script>
+</body>
+</html>
