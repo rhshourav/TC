@@ -8,10 +8,10 @@
 
 **Smart Code Compressor for Claude — paste more, burn less context.**
 
-[![Deploy Status](https://img.shields.io/github/actions/workflow/status/rhshourav/tokencrush/deploy.yml?branch=main&label=deploy&style=flat-square&color=7c6dfa)](https://github.com/rhshourav/tokencrush/actions)
-[![Live Site](https://img.shields.io/badge/live-tokencrush.github.io-3ecf8e?style=flat-square)](https://rhshourav.github.io/tokencrush)
-[![License](https://img.shields.io/github/license/rhshourav/tokencrush?style=flat-square&color=a393ff)](LICENSE)
-[![Single File](https://img.shields.io/badge/zero_deps-single_html-f5a623?style=flat-square)](#)
+[![Deploy Status](https://img.shields.io/github/actions/workflow/status/rhshourav/tc/deploy.yml?branch=main&label=deploy&style=flat-square&color=7c6dfa)](https://github.com/rhshourav/tc/actions)
+[![Live Site](https://img.shields.io/badge/live-rhshourav.github.io/tc-3ecf8e?style=flat-square)](https://rhshourav.github.io/tc)
+[![License](https://img.shields.io/github/license/rhshourav/tc?style=flat-square&color=a393ff)](LICENSE)
+[![Modular](https://img.shields.io/badge/architecture-modular_ES_modules-f5a623?style=flat-square)](#)
 
 </div>
 
@@ -19,7 +19,7 @@
 
 ## What is it?
 
-TokenCrush is a **zero-dependency, single-file web app** that strips your code down before you paste it into a Claude prompt. Drop in your files, choose a compression strategy, and get back a tighter version — with a live token counter, a diff viewer, and a ready-to-paste prompt bundle.
+TokenCrush is a **zero-dependency, browser-only web app** that strips your code down before you paste it into a Claude prompt. Drop in your files, choose a compression strategy, and get back a tighter version — with a live token counter, a diff viewer, and a ready-to-paste prompt bundle.
 
 It runs entirely in the browser. No server. No install. No data leaves your machine (unless you turn on AI mode, which calls the Anthropic API directly from your client).
 
@@ -27,43 +27,42 @@ It runs entirely in the browser. No server. No install. No data leaves your mach
 
 ## Features
 
-**File handling** — drag-and-drop individual files or whole `.zip` archives. Supports JS/TS, HTML, CSS/SCSS/SASS, Python, JSON, Markdown, and more. Each file gets its own status indicator so you know what's been processed at a glance.
+**Multi-language support** — JS/TS, C/C++, HTML, CSS/SCSS/SASS, Python, JSON, Markdown, and more. Each language gets its own comment stripper, whitespace rules, and reserved word list.
 
-**Local compression engine** — three independent toggles you can mix and match:
-- Strip comments (handles JS block/line comments and HTML `<!-- -->` correctly, string-aware so it won't eat regex or template literals)
-- Collapse whitespace (language-aware: different rules for HTML, CSS, and general code)
-- Rename identifiers (minifies long variable/function names to 2-char aliases, skips all JS reserved words and browser globals)
+**Modular compression engine** — three independent passes you can mix and match:
+- **Strip comments** — language-aware: C-style `//` and `/* */` for JS/C/C++, `#` for Python, `<!-- -->` for HTML
+- **Collapse whitespace** — different rules per language (HTML, CSS, C-style, generic)
+- **Rename identifiers** — minifies long names to short aliases, with 300+ reserved words per language (JS globals, C/C++ stdlib, Python builtins)
 
 **AI compression modes** — optionally calls `claude-sonnet-4-6` for deeper compression:
-- **Pseudo** — compresses and returns a 2-sentence summary of what the file does
-- **Semantic** — rewrites with ternaries, destructuring, and method chaining while keeping 100% logical equivalence
-- **Deep** — most aggressive: renames identifiers, collapses everything, outputs a full identifier map
+- **Pseudo** — compresses and returns a 2-sentence summary
+- **Semantic** — rewrites with ternaries, destructuring, and method chaining (100% logical equivalence)
+- **Deep** — most aggressive: renames all identifiers, collapses everything, outputs a full identifier map
 
-**Context map** — whenever identifiers are renamed (locally or by AI), a collapsible drawer lists every `originalName → _x` mapping so Claude can still reason about your code.
+**Context map** — whenever identifiers are renamed, a collapsible drawer lists every `originalName → _x` mapping so Claude can still reason about your code.
 
-**Output tabs** — four views on the result:
-- `Compressed` — the raw output, copyable
-- `Diff` — red/green line-by-line diff against the original
-- `Prompt` — output wrapped in a ready-to-paste Claude prompt block with your custom prefix
-- `Bundle` — all loaded files combined into a single structured prompt block
+**Output tabs** — five views:
+- `Compressed` — the raw output
+- `Diff` — red/green line-by-line diff
+- `Prompt` — ready-to-paste Claude prompt block
+- `Bundle` — all files combined
+- `History` — session compression history
 
-**Stats bar** — shows input tokens, output tokens, percentage saved, and a colour-coded gauge (green → amber → red) based on how much of the original context you're still using.
+**Stats bar** — input tokens, output tokens, percentage saved, colour-coded gauge.
 
-**Theme** — light/dark toggle with system-preference detection and `localStorage` persistence. The correct theme is applied before first paint to prevent flash.
-
-**Keyboard shortcut** — `Cmd/Ctrl + Enter` compresses the active file instantly.
+**Theme** — light/dark toggle with system-preference detection and `localStorage` persistence.
 
 ---
 
 ## Getting Started
 
-No build step. Just open `docs/index.html` in a browser — or visit the live site:
+No build step. Just open `docs/index.html` in a browser — or visit:
 
-**[https://rhshourav.github.io/tokencrush](https://rhshourav.github.io/tokencrush)**
+**[https://rhshourav.github.io/tc](https://rhshourav.github.io/tc)**
 
 ### Using AI mode
 
-AI compression calls the Anthropic API from your browser. You'll need an API key with access to `claude-sonnet-4-6`. The key is never stored — it lives only in the current session.
+AI compression calls the Anthropic API from your browser. You'll need an API key with access to `claude-sonnet-4-6`. The key is never stored.
 
 > AI mode is optional. The local engine alone typically saves 30–60% of tokens.
 
@@ -72,79 +71,131 @@ AI compression calls the Anthropic API from your browser. You'll need an API key
 ## Repository Layout
 
 ```
-tokencrush/
+tc/
 ├── .github/
 │   └── workflows/
-│       └── deploy.yml        # Validate + deploy to GitHub Pages
-├── docs/                     # Everything served as the live site
-│   ├── index.html            # The entire app — HTML, CSS, JS in one file
-│   ├── 404.html              # Custom 404 page
-│   ├── og-image.png          # Open Graph social preview (1200×630)
-│   ├── apple-touch-icon.png  # iOS home screen icon (180×180)
-│   ├── robots.txt            # Search crawler rules
-│   └── gen_assets.py         # Script to (re)generate PNG assets
+│       └── deploy.yml          # CI: validate + deploy to GitHub Pages
+├── docs/                       # Live site root
+│   ├── index.html              # App shell (HTML + CSS)
+│   ├── styles.css              # All CSS (850+ lines)
+│   ├── js/                     # ES modules (zero build step)
+│   │   ├── app.js              # Entry point
+│   │   ├── core/
+│   │   │   ├── engine.js       # Compression pipeline
+│   │   │   ├── state.js        # Global state
+│   │   │   ├── config.js       # Constants
+│   │   │   └── helpers.js      # Utility functions
+│   │   ├── languages/
+│   │   │   ├── registry.js     # Language registry
+│   │   │   ├── javascript.js   # JS/TS
+│   │   │   ├── c-cpp.js        # C/C++
+│   │   │   ├── css.js          # CSS/SCSS/SASS
+│   │   │   ├── html.js         # HTML
+│   │   │   ├── python.js       # Python
+│   │   │   └── other.js        # JSON, MD, YAML, etc.
+│   │   ├── passes/
+│   │   │   ├── registry.js     # Compression pass registry
+│   │   │   ├── comments.js     # Comment stripping
+│   │   │   ├── whitespace.js   # Whitespace optimization
+│   │   │   └── identifiers.js  # Identifier minification
+│   │   ├── ai/
+│   │   │   └── compressor.js   # AI API layer
+│   │   └── ui/
+│   │       ├── sidebar.js      # File list panel
+│   │       ├── editor.js       # Code editor panel
+│   │       ├── output.js       # Output panel + tabs
+│   │       ├── theme.js        # Theme toggle
+│   │       └── find.js         # Find & replace
+│   ├── 404.html
+│   ├── robots.txt
+│   └── assets/
 ├── img/
-│   └── baner.png             # Source banner for README / marketing
-├── .gitignore
+│   └── baner.png
+├── CONTRIBUTORS.md
 ├── LICENSE
 └── README.md
 ```
 
 ---
 
-## CI / CD
+## Architecture
 
-Every push and pull request to `main` runs the validation job. Deployment only happens on a direct push to `main`.
+### Language Registry
 
-```
-push / PR to main
-       │
-       ▼
-┌─────────────────────────────────┐
-│  validate                       │
-│  ├─ html-validate docs/index.html│
-│  ├─ asset existence check       │
-│  └─ broken local href check     │
-└────────────────┬────────────────┘
-                 │  (main push only)
-                 ▼
-┌─────────────────────────────────┐
-│  deploy                         │
-│  └─ docs/ → GitHub Pages        │
-└─────────────────────────────────┘
+Add a new language with one function call:
+
+```javascript
+import { registerLanguage } from './languages/registry.js';
+
+registerLanguage('rust', {
+  name: 'Rust',
+  extensions: ['rs'],
+  icon: '🦀',
+  badgeClass: 'lang-rust',
+  supportsIdRenaming: true,
+  commentStyle: 'c-style',
+  whitespaceRules: 'c-style'
+});
 ```
 
-The workflow file lives at `.github/workflows/deploy.yml`. See it for full details.
+### Compression Pass Registry
+
+Add a new compression pass:
+
+```javascript
+import { registerPass } from './passes/registry.js';
+
+registerPass('DeadCode', {
+  name: 'Dead Code',
+  description: 'Remove unreachable code',
+  order: 4,
+  run(code, lang) {
+    // Your compression logic here
+    return code;
+  }
+});
+```
+
+### Adding a Language
+
+1. Create `docs/js/languages/mylang.js`
+2. Call `registerLanguage()` with config
+3. Add comment/whitespace handling in `passes/comments.js` and `passes/whitespace.js`
+4. Add reserved words in `passes/identifiers.js`
+5. Import the new file in `docs/js/languages/index.js`
+
+See [CONTRIBUTORS.md](CONTRIBUTORS.md) for the full guide.
 
 ---
 
 ## Supported File Types
 
-| Language | Extensions |
-|---|---|
-| JavaScript / TypeScript | `.js` `.jsx` `.ts` `.tsx` `.mjs` `.cjs` |
-| HTML | `.html` `.htm` |
-| CSS | `.css` `.scss` `.sass` `.less` |
-| Python | `.py` |
-| Other text | `.json` `.md` `.txt` `.yaml` `.yml` |
-| Archives | `.zip` (extracted automatically) |
+| Language | Extensions | Comment Stripping | Whitespace | Identifier Renaming |
+|---|---|---|---|---|
+| JavaScript / TypeScript | `.js` `.jsx` `.ts` `.tsx` `.mjs` `.cjs` | ✅ | ✅ | ✅ |
+| C | `.c` `.h` | ✅ | ✅ | ✅ |
+| C++ | `.cpp` `.cxx` `.cc` `.hpp` `.hxx` `.hh` | ✅ | ✅ | ✅ |
+| HTML | `.html` `.htm` | ✅ | ✅ | — |
+| CSS | `.css` `.scss` `.sass` `.less` | ✅ | ✅ | — |
+| Python | `.py` | ✅ | ✅ | ✅ |
+| Other | `.json` `.md` `.txt` `.yaml` `.yml` | — | ✅ | — |
+| Archives | `.zip` | — | — | — |
 
 ---
 
 ## How Token Estimation Works
 
-TokenCrush estimates token count as `ceil(characters / 3.8)` — a reasonable approximation of Claude's tokenizer for mixed code. The exact count Claude sees may differ slightly, but the savings percentage is consistent and useful for comparing strategies.
+TokenCrush estimates token count as `ceil(characters / 3.8)` — a reasonable approximation of Claude's tokenizer for mixed code.
 
 ---
 
 ## Contributing
 
-1. Fork and clone the repo
-2. Edit `docs/index.html` directly — everything is in one file
-3. Open it locally in a browser to test (no build step needed)
-4. Open a PR against `main` — the CI will lint and check assets automatically
-
-Please keep the single-file constraint. The whole point is zero friction to deploy and share.
+See [CONTRIBUTORS.md](CONTRIBUTORS.md) for:
+- How to add a new language
+- How to add a new compression pass
+- Code style and conventions
+- PR process
 
 ---
 
