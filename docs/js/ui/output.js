@@ -215,10 +215,25 @@ export function switchTab(name) {
   document.querySelectorAll('.out-tab').forEach(t => t.classList.remove('active'));
   document.querySelector(`.out-tab[data-tab="${name}"]`)?.classList.add('active');
 
-  document.querySelectorAll('.out-content > div').forEach(d => d.classList.remove('show'));
   const chatPanel = document.getElementById('chatPanel');
-  if (chatPanel) chatPanel.classList.add('hidden');
+  const outEmpty = document.getElementById('outEmpty');
+  const outCode = document.getElementById('outCode');
 
+  // Hide everything first
+  document.querySelectorAll('.out-content > div').forEach(d => d.classList.remove('show'));
+  if (chatPanel) chatPanel.classList.add('hidden');
+  if (outEmpty) outEmpty.style.display = 'none';
+  if (outCode) outCode.style.display = 'none';
+
+  if (name === 'chat') {
+    // Chat takes over the full content area
+    if (chatPanel) chatPanel.classList.remove('hidden');
+    const messages = document.getElementById('chatMessages');
+    if (messages) messages.scrollTop = messages.scrollHeight;
+    return;
+  }
+
+  // For non-chat tabs, show the right content
   const tabMap = {
     compressed: 'outCode',
     diff: 'diffView',
@@ -230,10 +245,8 @@ export function switchTab(name) {
   const target = document.getElementById(tabMap[name]);
   if (target) target.classList.add('show');
 
-  if (name === 'chat') {
-    if (chatPanel) chatPanel.classList.remove('hidden');
-    const messages = document.getElementById('chatMessages');
-    if (messages) messages.scrollTop = messages.scrollHeight;
+  if (name === 'compressed' && !target?.value) {
+    if (outEmpty) outEmpty.style.display = 'flex';
   }
 
   if (name === 'bundle') buildBundleView();

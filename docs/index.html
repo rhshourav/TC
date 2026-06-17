@@ -69,10 +69,23 @@
   <div class="global-stats hidden" id="globalStats">
     <div class="hdr-sep"></div>
     <div class="gs-item">Files: <span class="gs-val" id="gsTotalFiles">0</span></div>
-    <div class="gs-sep"></div>
+    <div class="hdr-sep"></div>
     <div class="gs-item">Saved: <span class="gs-val green" id="gsTotalSaved">0</span> tok</div>
-    <div class="gs-sep"></div>
+    <div class="hdr-sep"></div>
     <div class="gs-item">Avg: <span class="gs-val green" id="gsAvgReduction">0%</span></div>
+  </div>
+
+  <div class="stats-display" id="statsDisplay">
+    <div class="stats-chip" title="Visitor count">
+      <span class="stats-chip-icon">👁</span>
+      <span class="stats-chip-val" id="visitorCount">—</span>
+      <span class="stats-chip-lbl">visitors</span>
+    </div>
+    <div class="stats-chip" title="Files compressed across all sessions">
+      <span class="stats-chip-icon">⚡</span>
+      <span class="stats-chip-val" id="filesCompressedCount">0</span>
+      <span class="stats-chip-lbl">compressed</span>
+    </div>
   </div>
 
   <div class="hdr-right">
@@ -121,7 +134,7 @@
       <input class="search-input" id="fileSearch" type="text" placeholder="Filter files…" oninput="filterFiles(this.value)">
     </div>
 
-    <div class="drop-zone" id="sidebarDrop" onclick="triggerFileInput()" ondragover="onDragOver(event,'sidebarDrop')" ondragleave="onDragLeave('sidebarDrop')" ondrop="onDrop(event,'sidebarDrop')">
+    <div class="drop-zone" id="sidebarDrop" onclick="triggerFileInput()">
       <div class="dz-icon">📂</div>
       <strong>Drop files, folders or ZIP</strong>
       <p>.js .ts .html .css .py<br>.c .cpp .json .md .zip · folders OK</p>
@@ -238,7 +251,7 @@
       <div class="budget-bar-fill" id="budgetBarFill"></div>
     </div>
 
-    <div class="code-wrap" id="codeWrap" ondragover="onDragOver(event,'codeWrap')" ondragleave="onDragLeave('codeWrap')" ondrop="onDrop(event,'codeWrap')">
+    <div class="code-wrap" id="codeWrap">
       <div class="empty-drop" id="editorEmpty">
         <div class="ed-icon">📂</div>
         <p>Select a file from the sidebar<br>or drop files / a ZIP here</p>
@@ -422,6 +435,12 @@
 </div>
 
 <script type="module" src="js/app.js"></script>
+
+<!-- Visitor counter (counter.dev) — replace YOUR_ID with your counter.dev ID -->
+<script async src="https://cdn.counter.dev/script.js"></script>
+<script>
+  try { counter("YOUR_ID", {"target": "#visitorCount"}); } catch(e) {}
+</script>
 
 </body>
 </html>

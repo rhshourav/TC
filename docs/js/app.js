@@ -10,6 +10,7 @@ import { renderOutput, showOutEmpty, switchTab, setProgress, copyOutput, exportB
 import { initTheme, toggleTheme } from './ui/theme.js';
 import { openFindBar, closeFindBar, doFind, findNext, findPrev, doReplace, doReplaceAll } from './ui/find.js';
 import { initChat, chatSend, chatKeydown, chatDownloadModel, chatClear, chatClearContext, chatGenReadme, setChatContext } from './ui/chat.js';
+import { initStats, trackFileCompressed } from './ui/stats.js';
 
 window.selectFile = selectFile;
 window.showEditorEmpty = showEditorEmpty;
@@ -36,6 +37,7 @@ window.doReplaceAll = doReplaceAll;
 window.onEditorInput = onEditorInput;
 
 function handleFiles(fileList, parentFolderId = null) {
+  let added = 0;
   for (const file of fileList) {
     if (file.name.endsWith('.zip')) {
       handleZip(file, parentFolderId);
@@ -46,6 +48,7 @@ function handleFiles(fileList, parentFolderId = null) {
     const reader = new FileReader();
     reader.onload = (e) => {
       addFile(file.name, e.target.result, parentFolderId);
+      added++;
       renderFileList();
       updateFileCount();
     };
@@ -375,7 +378,10 @@ function initDragDrop() {
   document.addEventListener('dragleave', (e) => {
     e.preventDefault();
     dragCounter--;
-    if (dragCounter === 0 && overlay) overlay.classList.remove('show');
+    if (dragCounter <= 0) {
+      dragCounter = 0;
+      if (overlay) overlay.classList.remove('show');
+    }
   });
 
   document.addEventListener('dragover', (e) => {
@@ -385,21 +391,38 @@ function initDragDrop() {
 
   document.addEventListener('drop', (e) => {
     e.preventDefault();
+    e.stopPropagation();
     dragCounter = 0;
     if (overlay) overlay.classList.remove('show');
 
     const dt = e.dataTransfer;
+    let count = 0;
+
     if (dt.items && dt.items.length > 0) {
-      const hasEntries = Array.from(dt.items).some(item =>
-        item.webkitGetAsEntry || item.getAsEntry
-      );
-      if (hasEntries) {
-        handleDataTransferItems(dt.items);
+      const entries = [];
+      let allNull = true;
+      for (const item of dt.items) {
+        if (item.kind === 'file') {
+          const entry = item.webkitGetAsEntry ? item.webkitGetAsEntry() : null;
+          if (entry) { entries.push(entry); allNull = false; }
+        }
+      }
+      if (entries.length > 0) {
+        processEntries(entries);
+        count = dt.items.length;
       } else if (dt.files && dt.files.length > 0) {
         handleFiles(dt.files);
+        count = dt.files.length;
       }
     } else if (dt.files && dt.files.length > 0) {
       handleFiles(dt.files);
+      count = dt.files.length;
+    }
+
+    if (count > 0) {
+      showToast(`Processing ${count} item${count > 1 ? 's' : ''}...`);
+    } else {
+      showToast('No supported files found', 'err');
     }
   });
 }
@@ -455,6 +478,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initDragDrop();
   initAccessibility();
   initChat();
+  initStats();
   onFileSelect(setChatContext);
 
   const themeBtn = document.getElementById('themeToggle');
@@ -479,9 +503,12 @@ document.addEventListener('DOMContentLoaded', () => {
   window.compressAll = async () => {
     const entries = [...state.files.entries()];
     if (entries.length === 0) return;
+    let count = 0;
     for (const [id, f] of entries) {
       compressFileById(id);
+      count++;
     }
+    trackFileCompressed(count);
     renderFileList();
     updateFileCount();
     updateGlobalStats();

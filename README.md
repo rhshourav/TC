@@ -61,6 +61,8 @@ It runs entirely in the browser. No server. No install. No data leaves your mach
 
 **Stats bar** — input tokens, output tokens, percentage saved, colour-coded gauge.
 
+**Live stats** — header shows visitor count (via [counter.dev](https://counter.dev)) and total files compressed across all sessions (localStorage).
+
 **Theme** — light/dark toggle with system-preference detection and `localStorage` persistence.
 
 ---
@@ -144,8 +146,9 @@ tc/
 │           ├── sidebar.js          # File list panel
 │           ├── editor.js           # Code editor panel
 │           ├── output.js           # Output panel + tabs
-│           ├── chat.js             # AI chat (Qwen2.5 0.5B via Transformers.js)
-│           ├── theme.js            # Theme toggle
+│       ├── chat.js             # AI chat (Qwen2.5 0.5B via Transformers.js)
+│       ├── stats.js            # Visitor counter + files compressed tracking
+│       ├── theme.js            # Theme toggle
 │           └── find.js             # Find & replace
 ├── img/
 │   └── baner.png
