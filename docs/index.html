@@ -36,8 +36,8 @@
     <div class="ai-spin"></div>
     <h3>Claude is compressing your code</h3>
     <p>Semantic analysis, identifier mapping, and logic summarization in progress.</p>
-    <div class="ai-progress-wrap">
-      <div class="ai-progress-track"><div class="ai-progress-fill" id="aiProg" style="width:5%"></div></div>
+      <div class="ai-progress-wrap">
+        <div class="ai-progress-track"><div class="ai-progress-fill" id="aiProg"></div></div>
       <div class="ai-stage" id="aiStage">Initializing...</div>
     </div>
     <div class="ai-file-list" id="aiFileList"></div>
@@ -55,7 +55,7 @@
   </a>
 
   <!-- Global session stats -->
-  <div class="global-stats" id="globalStats" style="display:none">
+  <div class="global-stats hidden" id="globalStats">
     <div class="hdr-sep"></div>
     <div class="gs-item">Files: <span class="gs-val" id="gsTotalFiles">0</span></div>
     <div class="gs-sep"></div>
@@ -68,12 +68,12 @@
     <span class="kbd"><kbd>⌘</kbd><kbd>↵</kbd> compress</span>
     <span class="kbd"><kbd>⌘</kbd><kbd>F</kbd> find</span>
     <div class="hdr-sep"></div>
-    <button class="btn" onclick="loadExample()">Load example</button>
-    <button class="btn" onclick="clearAll()">Clear all</button>
-    <button class="btn btn-green" onclick="exportBundle()">Export bundle</button>
-    <button class="btn btn-accent" onclick="triggerFileInput()">+ Add files</button>
-    <input type="file" id="globalFileInput" multiple accept=".js,.ts,.jsx,.tsx,.html,.css,.py,.json,.md,.txt,.zip" style="display:none" onchange="handleFileInputChange(this)">
-    <input type="file" id="globalFolderInput" multiple webkitdirectory style="display:none" onchange="handleFolderInputChange(this)">
+    <button class="btn" type="button" onclick="loadExample()">Load example</button>
+    <button class="btn" type="button" onclick="clearAll()">Clear all</button>
+    <button class="btn btn-green" type="button" onclick="exportBundle()">Export bundle</button>
+    <button class="btn btn-accent" type="button" onclick="triggerFileInput()">+ Add files</button>
+    <input type="file" id="globalFileInput" class="hidden" multiple accept=".js,.ts,.jsx,.tsx,.html,.css,.py,.json,.md,.txt,.zip" onchange="handleFileInputChange(this)">
+    <input type="file" id="globalFolderInput" class="hidden" multiple webkitdirectory onchange="handleFolderInputChange(this)">
     <div class="hdr-sep"></div>
     <a class="author-chip" href="https://github.com/rhshourav/TC" target="_blank" rel="noopener" title="View on GitHub by @rhshourav">
       <div class="ac-avatar">
@@ -102,12 +102,12 @@
   <div class="sidebar">
     <div class="sidebar-header">
       <span class="sidebar-title">Files</span>
-      <button class="add-file-btn" onclick="triggerFileInput()" title="Add files">+</button>
+      <button class="add-file-btn" type="button" onclick="triggerFileInput()" title="Add files">+</button>
     </div>
 
     <!-- Search files -->
     <div class="search-bar">
-      <input class="search-input" id="fileSearch" placeholder="Filter files…" oninput="filterFiles(this.value)">
+      <input class="search-input" id="fileSearch" type="text" placeholder="Filter files…" oninput="filterFiles(this.value)">
     </div>
 
     <div class="drop-zone" id="sidebarDrop" onclick="triggerFileInput()" ondragover="onDragOver(event,'sidebarDrop')" ondragleave="onDragLeave('sidebarDrop')" ondrop="onDrop(event,'sidebarDrop')">
@@ -168,7 +168,7 @@
           <span class="gtp-val green" id="gtpReduction">—</span>
         </div>
       </div>
-      <button class="compress-all-btn" id="compressAllBtn" onclick="compressAll()" disabled>
+      <button class="compress-all-btn" id="compressAllBtn" type="button" onclick="compressAll()" disabled>
         <span>⚡</span> Compress All
       </button>
       <div class="file-count-badge" id="fileCountBadge">No files loaded</div>
@@ -232,27 +232,27 @@
         <div class="ed-icon">📂</div>
         <p>Select a file from the sidebar<br>or drop files / a ZIP here</p>
       </div>
-      <textarea class="code-editor" id="codeEditor" placeholder="// Paste code here or select a file…" oninput="onEditorInput()" style="display:none"></textarea>
+      <textarea class="code-editor hidden" id="codeEditor" placeholder="// Paste code here or select a file…" oninput="onEditorInput()"></textarea>
 
       <!-- Find bar -->
       <div class="find-bar" id="findBar">
         <div class="find-row">
-          <input id="findInput" placeholder="Find…" oninput="doFind()" style="flex:1">
+          <input id="findInput" type="text" placeholder="Find…" oninput="doFind()" class="find-input">
           <span class="find-info" id="findInfo">0/0</span>
-          <button class="btn" style="padding:3px 8px;font-size:10px" onclick="findPrev()">↑</button>
-          <button class="btn" style="padding:3px 8px;font-size:10px" onclick="findNext()">↓</button>
-          <button class="btn" style="padding:3px 8px;font-size:10px" onclick="closeFindBar()">✕</button>
+          <button class="btn btn-sm" type="button" onclick="findPrev()">↑</button>
+          <button class="btn btn-sm" type="button" onclick="findNext()">↓</button>
+          <button class="btn btn-sm" type="button" onclick="closeFindBar()">✕</button>
         </div>
         <div class="find-row">
-          <input id="replaceInput" placeholder="Replace…" style="flex:1">
-          <button class="btn" style="padding:3px 8px;font-size:10px" onclick="doReplace()">Replace</button>
-          <button class="btn" style="padding:3px 8px;font-size:10px" onclick="doReplaceAll()">All</button>
+          <input id="replaceInput" type="text" placeholder="Replace…" class="find-input">
+          <button class="btn btn-sm" type="button" onclick="doReplace()">Replace</button>
+          <button class="btn btn-sm" type="button" onclick="doReplaceAll()">All</button>
         </div>
       </div>
     </div>
 
     <!-- Editor meta: line/char count -->
-    <div class="editor-meta-row" id="editorMetaRow" style="display:none">
+    <div class="editor-meta-row hidden" id="editorMetaRow">
       <span class="em-stat">Lines: <span id="emLines">0</span></span>
       <span class="em-stat">Chars: <span id="emChars">0</span></span>
       <span class="em-stat">Cursor: <span id="emCursor">1:1</span></span>
@@ -303,7 +303,7 @@
         <p>Hit <strong>Compress</strong> to crunch your code<br>and reclaim context window space.</p>
         <span class="out-empty-hint">⌘ + ↵ to compress fast</span>
       </div>
-      <textarea class="out-code" id="outCode" readonly style="display:none"></textarea>
+      <textarea class="out-code hidden" id="outCode" readonly></textarea>
       <div class="diff-view" id="diffView"></div>
       <div class="prompt-view" id="promptView"></div>
       <div class="bundle-view" id="bundleView"></div>
@@ -340,11 +340,11 @@
             <span class="gauge-pct" id="gaugePct">—</span>
           </div>
           <div class="gauge-track">
-            <div class="gauge-fill low" id="gaugeFill" style="width:0%"></div>
+            <div class="gauge-fill low" id="gaugeFill"></div>
           </div>
         </div>
         <div class="savings-badge" id="savingsBadge">-0</div>
-        <button class="copy-btn" id="copyBtn" onclick="copyOutput()">Copy</button>
+        <button class="copy-btn" id="copyBtn" type="button" onclick="copyOutput()">Copy</button>
       </div>
     </div>
 
@@ -361,8 +361,8 @@
     <!-- Prefix row -->
     <div class="prefix-row">
       <span class="prefix-lbl">Prefix</span>
-      <input class="prefix-input" id="prefixInput" value="[COMPRESSED — see context map for identifier mappings]">
-      <button class="btn btn-accent" onclick="rebuildPrompt()" style="flex-shrink:0;font-size:10px;padding:5px 10px">Apply</button>
+      <input class="prefix-input" id="prefixInput" type="text" value="[COMPRESSED — see context map for identifier mappings]">
+      <button class="btn btn-accent btn-apply" type="button" onclick="rebuildPrompt()">Apply</button>
     </div>
   </div>
 </div>

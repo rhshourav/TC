@@ -94,6 +94,10 @@ header{
 .btn-accent:hover{background:var(--accent2);border-color:var(--accent2);color:#fff}
 .btn-green{background:var(--green-dim);border-color:rgba(62,207,142,.3);color:var(--green)}
 .btn-green:hover{background:rgba(62,207,142,.18)}
+.btn-sm{padding:3px 8px;font-size:10px}
+.find-input{flex:1}
+.btn-apply{flex-shrink:0;font-size:10px;padding:5px 10px}
+.hidden{display:none}
 .hdr-sep{width:1px;height:22px;background:var(--border2);flex-shrink:0}
 
 /* ── THEME TOGGLE ── */
