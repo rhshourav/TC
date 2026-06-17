@@ -38,13 +38,17 @@ window.onEditorInput = onEditorInput;
 
 function handleFiles(fileList, parentFolderId = null) {
   const promises = [];
+  let added = 0;
+  let skipped = 0;
   for (const file of fileList) {
     if (file.name.endsWith('.zip')) {
       promises.push(handleZip(file, parentFolderId));
+      added++;
       continue;
     }
-    if (!isCompressible(file.name)) continue;
+    if (!isCompressible(file.name)) { skipped++; continue; }
 
+    added++;
     const p = new Promise((resolve) => {
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -58,7 +62,7 @@ function handleFiles(fileList, parentFolderId = null) {
     });
     promises.push(p);
   }
-  return Promise.all(promises);
+  return Promise.all(promises).then(() => ({ added, skipped }));
 }
 
 async function handleZip(file, parentFolderId) {
@@ -128,21 +132,43 @@ function handleDataTransferItems(items) {
   return processEntries(entries);
 }
 
+// FileSystemFileEntry.file() is callback-based, NOT a Promise — it must be
+// wrapped or `await`/return-value usage silently yields undefined and the
+// file is dropped on the floor. This wrapper is the actual fix.
+function getEntryFile(entry) {
+  return new Promise((resolve) => {
+    if (!entry || !entry.file) return resolve(null);
+    entry.file(resolve, (err) => {
+      console.error('Failed to read dropped file', entry.fullPath || entry.name, err);
+      resolve(null);
+    });
+  });
+}
+
 async function processEntries(entries) {
+  const stats = { added: 0, skipped: 0 };
   for (const entry of entries) {
     if (!entry) continue;
     if (entry.isDirectory) {
-      await processDirectory(entry);
+      const r = await processDirectory(entry);
+      stats.added += r.added;
+      stats.skipped += r.skipped;
     } else {
-      const file = entry.file ? entry.file() : null;
-      if (file) handleFiles([file]);
+      const file = await getEntryFile(entry);
+      if (file) {
+        const r = await handleFiles([file]);
+        stats.added += r.added;
+        stats.skipped += r.skipped;
+      }
     }
   }
+  return stats;
 }
 
 async function processDirectory(entry, parentId = null) {
   const folderId = addFolder(entry.name, parentId);
   renderFileList();
+  const stats = { added: 0, skipped: 0 };
 
   const reader = entry.createReader();
   const entries = await new Promise((resolve) => {
@@ -155,6 +181,9 @@ async function processDirectory(entry, parentId = null) {
           all.push(...batch);
           readBatch();
         }
+      }, (err) => {
+        console.error('Failed to read directory entries', entry.fullPath || entry.name, err);
+        resolve(all);
       });
     };
     readBatch();
@@ -162,12 +191,19 @@ async function processDirectory(entry, parentId = null) {
 
   for (const child of entries) {
     if (child.isDirectory) {
-      await processDirectory(child, folderId);
+      const r = await processDirectory(child, folderId);
+      stats.added += r.added;
+      stats.skipped += r.skipped;
     } else {
-      const file = child.file ? child.file() : null;
-      if (file) handleFiles([file], folderId);
+      const file = await getEntryFile(child);
+      if (file) {
+        const r = await handleFiles([file], folderId);
+        stats.added += r.added;
+        stats.skipped += r.skipped;
+      }
     }
   }
+  return stats;
 }
 
 function handleFolderInputChange(input) {
@@ -416,8 +452,8 @@ function initDragDrop() {
       }
       if (entries.length > 0) {
         showToast(`Loading ${entries.length} item${entries.length > 1 ? 's' : ''}...`);
-        await processEntries(entries);
-        showToast('Files loaded');
+        const { added, skipped } = await processEntries(entries);
+        reportLoadResult(added, skipped);
         return;
       }
     }
@@ -425,13 +461,23 @@ function initDragDrop() {
     if (dt.files && dt.files.length > 0) {
       const count = dt.files.length;
       showToast(`Loading ${count} file${count > 1 ? 's' : ''}...`);
-      await handleFiles(dt.files);
-      showToast('Files loaded');
+      const { added, skipped } = await handleFiles(dt.files);
+      reportLoadResult(added, skipped);
       return;
     }
 
     showToast('No supported files found', 'err');
   });
+}
+
+function reportLoadResult(added, skipped) {
+  if (added > 0 && skipped > 0) {
+    showToast(`Loaded ${added} file${added > 1 ? 's' : ''} (${skipped} unsupported skipped)`);
+  } else if (added > 0) {
+    showToast(`Loaded ${added} file${added > 1 ? 's' : ''}`);
+  } else {
+    showToast('No supported files found in drop', 'err');
+  }
 }
 
 function initToggles() {
@@ -543,18 +589,19 @@ document.addEventListener('DOMContentLoaded', () => {
   window.onDragLeave = (id) => { document.getElementById(id)?.classList.remove('drag-over'); };
   window.onDrop = async (e, id) => {
     e.preventDefault();
+    e.stopPropagation();
     document.getElementById(id)?.classList.remove('drag-over');
     const dt = e.dataTransfer;
 
     if (dt.items && dt.items.length > 0) {
       showToast(`Loading...`);
-      await handleDataTransferItems(dt.items);
-      showToast('Files loaded');
+      const { added, skipped } = await handleDataTransferItems(dt.items);
+      reportLoadResult(added, skipped);
     } else if (dt.files && dt.files.length > 0) {
       const count = dt.files.length;
       showToast(`Loading ${count} file${count > 1 ? 's' : ''}...`);
-      await handleFiles(dt.files);
-      showToast('Files loaded');
+      const { added, skipped } = await handleFiles(dt.files);
+      reportLoadResult(added, skipped);
     } else {
       showToast('No supported files found', 'err');
     }
