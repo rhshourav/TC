@@ -1,0 +1,2511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<script>
+(function(){
+  try{
+    var stored=localStorage.getItem('tokencrush-theme');
+    var theme=stored||'light';
+    document.documentElement.setAttribute('data-theme',theme);
+  }catch(e){document.documentElement.setAttribute('data-theme','light');}
+})();
+</script>
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>TokenCrush — Smart Code Compressor for Claude</title>
+<meta name="description" content="TokenCrush strips whitespace, comments, and bloated identifiers from your code, then optionally lets Claude compress it further — so you can paste more files into a single prompt without burning your context window.">
+<meta name="theme-color" id="themeColorMeta" content="#0b0b0e">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%237c6dfa'/%3E%3Ctext x='32' y='44' font-size='34' text-anchor='middle' fill='white'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:title" content="TokenCrush — Smart Code Compressor for Claude">
+<meta property="og:description" content="Strip whitespace, comments, and bloated identifiers from your code — then hand Claude more files per prompt without burning your context window.">
+<meta property="og:image" content="og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="TokenCrush — Smart Code Compressor for Claude">
+<meta name="twitter:description" content="Strip whitespace, comments, and bloated identifiers from your code — then hand Claude more files per prompt without burning your context window.">
+<meta name="twitter:image" content="og-image.png">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+/* ── TOKENS ── */
+:root{
+  --bg:#0b0b0e;
+  --surface:#141418;
+  --surface2:#1e1e26;
+  --surface3:#28282f;
+  --border:rgba(255,255,255,0.07);
+  --border2:rgba(255,255,255,0.13);
+  --border3:rgba(255,255,255,0.22);
+  --text:#ededf0;
+  --text2:#a0a0aa;
+  --muted:#606068;
+  --accent:#7c6dfa;
+  --accent2:#a393ff;
+  --accent-dim:rgba(124,109,250,0.12);
+  --green:#3ecf8e;
+  --green-dim:rgba(62,207,142,0.10);
+  --red:#f05252;
+  --amber:#f5a623;
+  --amber-dim:rgba(245,166,35,0.10);
+  --mono:'JetBrains Mono','Fira Code','Cascadia Code',monospace;
+  --radius:8px;
+  --radius-lg:12px;
+  --shadow-card:none;
+  --sidebar-w:228px;
+  --header-h:52px;
+  --out-w:400px;
+}
+:root[data-theme="light"]{
+  --bg:#f4f4f7;
+  --surface:#ffffff;
+  --surface2:#f0f0f3;
+  --surface3:#e6e6ec;
+  --border:rgba(20,20,30,0.08);
+  --border2:rgba(20,20,30,0.14);
+  --border3:rgba(20,20,30,0.26);
+  --text:#14141a;
+  --text2:#55555f;
+  --muted:#84848d;
+  --accent:#5b3fe0;
+  --accent2:#4c2fd1;
+  --accent-dim:rgba(91,63,224,0.08);
+  --green:#0c8a57;
+  --green-dim:rgba(12,138,87,0.09);
+  --red:#c4314f;
+  --amber:#9c6500;
+  --amber-dim:rgba(156,101,0,0.09);
+  --shadow-card:0 16px 40px -12px rgba(20,20,30,0.16);
+}
+
+/* ── RESET ── */
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{
+  background:var(--bg);color:var(--text);
+  font-family:-apple-system,'Inter',sans-serif;
+  font-size:13px;line-height:1.5;
+}
+
+/* ── TRANSITIONS ── */
+body,header,.sidebar,.sidebar-header,.sidebar-footer,
+.editor-panel,.editor-header,.controls-bar,.output-panel,
+.out-header,.out-tabs,.stats-bar,.prefix-row,.ctx-drawer,
+.pseudo-bar,.ai-card,.toast,.drop-zone,.file-item,textarea{
+  transition:background-color .2s,border-color .2s,color .2s;
+}
+
+/* ── HEADER ── */
+header{
+  height:var(--header-h);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 16px;gap:12px;
+  flex-shrink:0;position:relative;z-index:50;
+  background:var(--surface);
+}
+.logo{display:flex;align-items:center;gap:9px;text-decoration:none}
+.logo-icon{
+  width:26px;height:26px;background:var(--accent);border-radius:7px;
+  display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;
+}
+.logo-text{font-weight:700;font-size:14px;letter-spacing:-.4px;color:var(--text)}
+.logo-badge{
+  font-size:9px;background:var(--accent-dim);color:var(--accent2);
+  border:1px solid rgba(124,109,250,.25);border-radius:4px;
+  padding:2px 6px;font-weight:600;letter-spacing:.6px;
+}
+.hdr-right{margin-left:auto;display:flex;align-items:center;gap:6px}
+.btn{
+  padding:5px 11px;border-radius:var(--radius);border:1px solid var(--border2);
+  background:var(--surface2);color:var(--text2);font-size:11px;font-weight:500;
+  cursor:pointer;transition:all .15s;white-space:nowrap;
+}
+.btn:hover{border-color:var(--border3);color:var(--text);background:var(--surface3)}
+.btn-accent{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn-accent:hover{background:var(--accent2);border-color:var(--accent2);color:#fff}
+.btn-green{background:var(--green-dim);border-color:rgba(62,207,142,.3);color:var(--green)}
+.btn-green:hover{background:rgba(62,207,142,.18)}
+.hdr-sep{width:1px;height:22px;background:var(--border2);flex-shrink:0}
+
+/* ── THEME TOGGLE ── */
+.theme-toggle{
+  position:relative;width:44px;height:24px;flex-shrink:0;padding:0;
+  border-radius:13px;border:1px solid var(--border2);background:var(--surface2);
+  cursor:pointer;transition:background-color .2s,border-color .2s;
+}
+.theme-toggle:hover{border-color:var(--border3)}
+.theme-toggle:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.theme-toggle .tt-track-icon{position:absolute;top:50%;transform:translateY(-50%);font-size:10px;line-height:1;opacity:.4;transition:opacity .2s;pointer-events:none}
+.theme-toggle .tt-sun{left:5px}
+.theme-toggle .tt-moon{right:5px}
+.theme-toggle .tt-knob{position:absolute;z-index:1;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:var(--accent);box-shadow:0 1px 3px rgba(0,0,0,.35);transition:transform .25s cubic-bezier(.4,0,.2,1),background-color .2s}
+:root[data-theme="light"] .theme-toggle .tt-knob{transform:translateX(20px);background:var(--amber)}
+:root[data-theme="dark"] .theme-toggle .tt-moon{opacity:1}
+:root[data-theme="light"] .theme-toggle .tt-sun{opacity:1}
+
+/* ── LAYOUT ── */
+.workspace{display:flex;height:calc(100vh - var(--header-h))}
+
+/* ── SIDEBAR ── */
+.sidebar{
+  width:var(--sidebar-w);flex-shrink:0;border-right:1px solid var(--border);
+  display:flex;flex-direction:column;background:var(--surface);
+}
+.sidebar-header{
+  padding:10px 12px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:6px;
+}
+.sidebar-title{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;flex:1}
+.add-file-btn{
+  width:20px;height:20px;border-radius:5px;border:1px solid var(--border2);
+  background:transparent;color:var(--muted);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;font-size:14px;
+  line-height:1;transition:all .15s;
+}
+.add-file-btn:hover{border-color:var(--accent);color:var(--accent2)}
+
+/* ── DROP ZONE ── */
+.drop-zone{
+  margin:10px;border:1.5px dashed var(--border2);border-radius:var(--radius-lg);
+  padding:16px 10px;text-align:center;cursor:pointer;transition:all .2s;flex-shrink:0;
+}
+.drop-zone:hover,.drop-zone.drag-over{border-color:var(--accent);background:var(--accent-dim)}
+.drop-zone .dz-icon{font-size:20px;margin-bottom:6px;opacity:.5}
+.drop-zone p{font-size:10px;color:var(--muted);line-height:1.5}
+.drop-zone strong{color:var(--text2);display:block;font-size:11px;margin-bottom:3px}
+.drop-zone input[type=file]{display:none}
+
+/* ── FILE LIST ── */
+.file-list{flex:1;overflow-y:auto;padding:4px 6px}
+.file-list::-webkit-scrollbar{width:3px}
+.file-list::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+.file-item{
+  display:flex;align-items:center;gap:7px;padding:7px 8px;
+  border-radius:var(--radius);cursor:pointer;transition:all .15s;
+  margin-bottom:2px;position:relative;border:1px solid transparent;
+}
+.file-item:hover{background:var(--surface2)}
+.file-item.active{background:var(--accent-dim);border-color:rgba(124,109,250,.2)}
+.file-item .fi-icon{font-size:13px;flex-shrink:0;width:16px;text-align:center}
+.file-item .fi-name{flex:1;font-size:11px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:var(--mono)}
+.file-item .fi-size{font-size:9px;color:var(--muted);flex-shrink:0}
+.file-item .fi-del{
+  opacity:0;font-size:11px;color:var(--muted);cursor:pointer;padding:2px;
+  border-radius:3px;flex-shrink:0;background:none;border:none;transition:.15s;
+}
+.file-item:hover .fi-del{opacity:1}
+.file-item .fi-del:hover{color:var(--red);background:rgba(240,82,82,.15)}
+.fi-status{width:6px;height:6px;border-radius:50%;flex-shrink:0;transition:background .3s}
+.fi-status.done{background:var(--green)}
+.fi-status.pending{background:var(--muted)}
+.fi-status.processing{background:var(--amber);animation:pulse 1s infinite}
+.fi-status.error{background:var(--red)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ── FOLDER ITEMS ── */
+.folder-item{
+  display:flex;align-items:center;gap:6px;padding:5px 8px;
+  border-radius:var(--radius);cursor:pointer;transition:all .15s;
+  margin-bottom:1px;position:relative;border:1px solid transparent;
+  user-select:none;
+}
+.folder-item:hover{background:var(--surface2)}
+.folder-item.drag-over-folder{border-color:var(--accent);background:var(--accent-dim)}
+.folder-toggle{
+  font-size:9px;color:var(--muted);flex-shrink:0;
+  width:12px;text-align:center;transition:transform .15s;
+  line-height:1;
+}
+.folder-toggle.open{transform:rotate(90deg)}
+.folder-icon{font-size:13px;flex-shrink:0;width:16px;text-align:center}
+.folder-name{flex:1;font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:var(--mono);color:var(--text2)}
+.folder-count{font-size:9px;color:var(--muted);flex-shrink:0}
+.folder-del{
+  opacity:0;font-size:11px;color:var(--muted);cursor:pointer;padding:2px;
+  border-radius:3px;flex-shrink:0;background:none;border:none;transition:.15s;
+}
+.folder-item:hover .folder-del{opacity:1}
+.folder-del:hover{color:var(--red);background:rgba(240,82,82,.15)}
+
+.folder-children{overflow:hidden;transition:max-height .2s cubic-bezier(.4,0,.2,1)}
+.folder-children.collapsed{max-height:0!important}
+
+.file-item.indented{padding-left:calc(8px + var(--depth,0)*16px)}
+.folder-item.indented{padding-left:calc(8px + var(--depth,0)*16px)}
+
+/* Root-level files (depth 0) keep normal padding */
+.file-item[data-depth="0"]{padding-left:8px}
+.folder-item[data-depth="0"]{padding-left:8px}
+
+/* ── SIDEBAR FOOTER ── */
+.sidebar-footer{border-top:1px solid var(--border);padding:10px 12px;flex-shrink:0}
+.compress-all-btn{
+  width:100%;padding:8px;border-radius:var(--radius);background:var(--accent);
+  border:none;color:#fff;font-size:12px;font-weight:700;cursor:pointer;
+  transition:all .2s;display:flex;align-items:center;justify-content:center;
+  gap:6px;letter-spacing:.1px;
+}
+.compress-all-btn:hover:not(:disabled){background:var(--accent2);transform:translateY(-1px)}
+.compress-all-btn:active:not(:disabled){transform:translateY(0)}
+.compress-all-btn:disabled{opacity:.4;cursor:not-allowed}
+.file-count-badge{margin-top:6px;text-align:center;font-size:10px;color:var(--muted)}
+
+/* ── GLOBAL STATS BAR (header) ── */
+.global-stats{
+  display:flex;align-items:center;gap:10px;font-size:10px;
+  color:var(--muted);padding:0 2px;
+}
+.gs-item{display:flex;align-items:center;gap:4px;white-space:nowrap}
+.gs-val{color:var(--text2);font-weight:600;font-family:var(--mono)}
+.gs-val.green{color:var(--green)}
+.gs-sep{width:1px;height:12px;background:var(--border2)}
+
+/* ── EDITOR PANEL ── */
+.editor-panel{flex:1;display:flex;flex-direction:column;min-width:0;border-right:1px solid var(--border)}
+.editor-header{
+  height:40px;border-bottom:1px solid var(--border);display:flex;
+  align-items:center;padding:0 14px;gap:10px;flex-shrink:0;background:var(--surface);
+}
+.editor-filename{
+  font-size:12px;font-weight:600;font-family:var(--mono);color:var(--text2);
+  flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.lang-badge{font-size:9px;padding:2px 7px;border-radius:4px;font-weight:600;letter-spacing:.5px;text-transform:uppercase}
+.lang-js{background:rgba(245,166,35,.15);color:var(--amber);border:1px solid rgba(245,166,35,.25)}
+.lang-html{background:rgba(240,82,82,.12);color:#f08052;border:1px solid rgba(240,82,82,.2)}
+:root[data-theme="light"] .lang-html{color:#b8401f}
+.lang-css{background:rgba(62,207,142,.12);color:var(--green);border:1px solid rgba(62,207,142,.2)}
+.lang-py{background:rgba(124,109,250,.15);color:var(--accent2);border:1px solid rgba(124,109,250,.25)}
+.lang-other{background:var(--surface3);color:var(--muted);border:1px solid var(--border2)}
+.token-pill{
+  font-size:10px;color:var(--muted);background:var(--surface3);
+  border-radius:4px;padding:2px 8px;white-space:nowrap;
+  transition:color .2s,background .2s;
+}
+.token-pill.warn{color:var(--amber);background:var(--amber-dim)}
+.token-pill.danger{color:var(--red);background:rgba(240,82,82,.1)}
+
+/* ── CONTROLS BAR ── */
+.controls-bar{border-bottom:1px solid var(--border);padding:8px 14px;background:var(--surface);flex-shrink:0}
+.ctrl-row1{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.tgl-grp{display:flex;align-items:center;gap:5px}
+.tgl-lbl{font-size:10px;color:var(--text2);white-space:nowrap;user-select:none}
+.tgl{position:relative;width:28px;height:15px;flex-shrink:0}
+.tgl input{opacity:0;width:0;height:0;position:absolute}
+.tgl-s{
+  position:absolute;inset:0;background:var(--surface3);border-radius:8px;
+  cursor:pointer;border:1px solid var(--border2);transition:.2s;
+}
+.tgl-s:before{content:'';position:absolute;width:11px;height:11px;left:1px;top:1px;background:var(--muted);border-radius:50%;transition:.2s}
+input:checked+.tgl-s{background:var(--accent);border-color:var(--accent)}
+input:checked+.tgl-s:before{transform:translateX(13px);background:#fff}
+.sep{width:1px;height:16px;background:var(--border2);flex-shrink:0}
+.ctrl-row2{display:flex;align-items:center;gap:6px;margin-top:7px;flex-wrap:wrap}
+.ai-lbl{font-size:10px;color:var(--muted);white-space:nowrap}
+.spill{
+  font-size:10px;padding:3px 9px;border-radius:5px;border:1px solid var(--border2);
+  color:var(--muted);cursor:pointer;transition:all .15s;
+  display:flex;align-items:center;gap:4px;white-space:nowrap;
+}
+.spill.active{border-color:var(--accent);color:var(--accent2);background:var(--accent-dim)}
+.spill .sd{width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0}
+.spill[data-s=deep]{color:var(--green);border-color:rgba(62,207,142,.3)}
+.spill[data-s=deep]:not(.active){opacity:.5}
+.spill[data-s=deep].active{background:var(--green-dim);border-color:rgba(62,207,142,.5)}
+
+/* ── TOKEN BUDGET BAR ── */
+.budget-bar-wrap{
+  height:2px;background:var(--surface3);flex-shrink:0;overflow:hidden;
+  position:relative;
+}
+.budget-bar-fill{
+  height:100%;width:0%;
+  background:linear-gradient(90deg,var(--green),var(--accent));
+  transition:width .4s ease,background .4s;
+}
+.budget-bar-fill.warn{background:linear-gradient(90deg,var(--amber),var(--red))}
+.budget-bar-label{
+  position:absolute;right:6px;top:50%;transform:translateY(-50%);
+  font-size:8px;color:var(--muted);white-space:nowrap;line-height:1;
+  pointer-events:none;
+}
+
+/* ── CODE EDITOR ── */
+.code-wrap{flex:1;position:relative;overflow:hidden}
+textarea.code-editor{
+  position:absolute;inset:0;background:transparent;border:none;
+  color:var(--text);font-family:var(--mono);font-size:12px;line-height:1.7;
+  padding:14px;resize:none;outline:none;tab-size:2;width:100%;height:100%;
+}
+textarea.code-editor::placeholder{color:var(--muted)}
+.empty-drop{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;pointer-events:none}
+.empty-drop .ed-icon{font-size:36px;opacity:.15}
+.empty-drop p{font-size:12px;color:var(--muted);text-align:center;line-height:1.8}
+
+/* ── LINE / CHAR COUNT PILL ── */
+.editor-meta-row{
+  border-top:1px solid var(--border);padding:4px 14px;
+  background:var(--surface);display:flex;align-items:center;gap:12px;flex-shrink:0;
+}
+.em-stat{font-size:9px;color:var(--muted)}
+.em-stat span{color:var(--text2)}
+
+/* ── OUTPUT PANEL ── */
+.output-panel{
+  width:var(--out-w);flex-shrink:0;display:flex;flex-direction:column;
+  background:var(--bg);position:relative;
+}
+
+/* ── OUT HEADER ── */
+.out-header{
+  height:40px;border-bottom:1px solid var(--border);display:flex;
+  align-items:center;padding:0 14px;gap:10px;flex-shrink:0;
+  background:var(--surface);
+}
+.out-header-label{
+  font-size:9px;font-weight:800;color:var(--muted);text-transform:uppercase;
+  letter-spacing:1.2px;flex:1;
+}
+.out-filename-pill{
+  font-size:10px;color:var(--text2);font-family:var(--mono);
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:4px;padding:2px 8px;max-width:140px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+
+/* ── TAB BAR (icon + label pill style) ── */
+.out-tabs{
+  display:flex;gap:2px;padding:6px 10px;border-bottom:1px solid var(--border);
+  flex-shrink:0;background:var(--surface);overflow-x:auto;
+}
+.out-tabs::-webkit-scrollbar{display:none}
+.out-tab{
+  display:flex;align-items:center;gap:5px;
+  padding:5px 10px;border-radius:6px;
+  font-size:10px;font-weight:600;color:var(--muted);
+  cursor:pointer;transition:all .15s;white-space:nowrap;
+  border:1px solid transparent;letter-spacing:.2px;
+}
+.out-tab:hover:not(.active){background:var(--surface2);color:var(--text2)}
+.out-tab.active{
+  background:var(--accent-dim);color:var(--accent2);
+  border-color:rgba(124,109,250,.22);
+}
+.out-tab .tab-icon{font-size:11px;line-height:1}
+
+/* ── PROGRESS ── */
+.progress-strip{height:2px;background:transparent;flex-shrink:0;overflow:hidden;position:relative}
+.progress-fill{
+  height:100%;width:0%;
+  background:linear-gradient(90deg,var(--accent),var(--green));
+  transition:width .3s;
+  box-shadow:0 0 8px rgba(124,109,250,.6);
+}
+
+/* ── OUTPUT CONTENT ── */
+.out-content{flex:1;overflow:hidden;display:flex;flex-direction:column;position:relative;background:var(--bg)}
+
+/* ── EMPTY STATE ── */
+.out-empty{
+  position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:10px;color:var(--muted);
+  background:var(--bg);
+}
+.out-empty .oe-icon{
+  font-size:32px;opacity:.15;
+  filter:grayscale(1);
+}
+.out-empty p{font-size:11px;color:var(--muted);text-align:center;line-height:1.7}
+.out-empty-hint{
+  font-size:10px;color:var(--muted);opacity:.6;
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:20px;padding:4px 12px;margin-top:4px;
+}
+
+/* ── CODE OUTPUT ── */
+textarea.out-code{
+  flex:1;background:transparent;border:none;
+  color:var(--green);
+  font-family:var(--mono);font-size:11.5px;line-height:1.75;
+  padding:16px 16px 16px 16px;resize:none;outline:none;
+  width:100%;height:100%;
+  caret-color:var(--accent);
+}
+
+/* ── DIFF VIEW ── */
+.diff-view,.prompt-view,.bundle-view,.history-view{
+  flex:1;overflow-y:auto;padding:14px 16px;display:none;
+  font-family:var(--mono);font-size:11px;line-height:1.7;
+}
+.diff-view.show,.prompt-view.show,.bundle-view.show,.history-view.show{display:block}
+
+.diff-section-label{
+  font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;
+  padding:4px 10px;border-radius:4px;margin-bottom:6px;display:inline-flex;
+  align-items:center;gap:5px;
+}
+.diff-section-label.before{background:rgba(240,82,82,.1);color:var(--red)}
+.diff-section-label.after{background:rgba(62,207,142,.1);color:var(--green)}
+.diff-line{
+  padding:1px 8px;border-radius:2px;
+  white-space:pre-wrap;word-break:break-all;
+}
+.diff-line.rem{background:rgba(240,82,82,.06);color:var(--red);border-left:2px solid rgba(240,82,82,.35)}
+.diff-line.add{background:rgba(62,207,142,.06);color:var(--green);border-left:2px solid rgba(62,207,142,.35)}
+.diff-line.ctx{color:var(--muted)}
+
+/* ── PROMPT VIEW ── */
+.prompt-view{color:var(--text2);white-space:pre-wrap;word-break:break-all}
+
+/* ── BUNDLE VIEW ── */
+.bundle-view{color:var(--text2)}
+.bundle-file-block{
+  margin-bottom:16px;border:1px solid var(--border);
+  border-radius:var(--radius-lg);overflow:hidden;
+}
+.bundle-file-hdr{
+  font-size:10px;font-weight:700;color:var(--accent2);
+  letter-spacing:.4px;padding:7px 10px;
+  background:var(--accent-dim);
+  display:flex;justify-content:space-between;align-items:center;
+}
+.bundle-file-hdr .bfh-tokens{
+  font-size:9px;color:var(--muted);font-weight:400;
+  font-family:var(--mono);
+}
+.bundle-file-code{
+  font-size:10.5px;color:var(--green);line-height:1.65;
+  padding:10px;background:var(--bg);border-top:1px solid var(--border);
+}
+
+/* ── HISTORY VIEW ── */
+.history-view{color:var(--text2)}
+.hist-entry{
+  border:1px solid var(--border);border-radius:var(--radius-lg);
+  margin-bottom:8px;overflow:hidden;transition:border-color .15s;
+}
+.hist-entry:hover{border-color:var(--border2)}
+.hist-hdr{
+  padding:8px 12px;background:var(--surface);display:flex;
+  align-items:center;gap:8px;cursor:pointer;font-size:10px;
+}
+.hist-hdr:hover{background:var(--surface2)}
+.hist-fname{font-family:var(--mono);color:var(--text2);font-size:10px}
+.hist-ts{color:var(--muted);font-size:9px;margin-left:auto;font-family:var(--mono)}
+.hist-badge{
+  font-size:9px;padding:2px 7px;border-radius:20px;
+  background:var(--green-dim);color:var(--green);
+  border:1px solid rgba(62,207,142,.2);font-weight:700;
+}
+.hist-body{
+  display:none;padding:10px 12px;
+  font-size:10px;font-family:var(--mono);color:var(--green);
+  white-space:pre-wrap;word-break:break-all;
+  max-height:120px;overflow-y:auto;
+  background:var(--bg);border-top:1px solid var(--border);
+}
+.hist-body.open{display:block}
+.hist-restore-btn{
+  font-size:9px;padding:3px 8px;border-radius:20px;
+  border:1px solid var(--border2);
+  background:transparent;color:var(--muted);
+  cursor:pointer;transition:all .15s;
+}
+.hist-restore-btn:hover{
+  border-color:var(--accent);color:var(--accent2);
+  background:var(--accent-dim);
+}
+
+/* ── STATS BLOCK ── */
+.stats-bar{
+  border-top:1px solid var(--border);
+  padding:12px 14px 10px;background:var(--surface);
+  display:none;flex-shrink:0;
+}
+.stats-grid{
+  display:grid;grid-template-columns:1fr 1fr 1fr;
+  gap:8px;margin-bottom:10px;
+}
+.stat-card{
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:var(--radius);padding:8px 10px;
+  display:flex;flex-direction:column;gap:2px;
+  transition:border-color .2s;
+}
+.stat-card:hover{border-color:var(--border2)}
+.stat-v{
+  font-size:17px;font-weight:800;letter-spacing:-.8px;
+  line-height:1;transition:color .3s;font-family:var(--mono);
+}
+.stat-v.g{color:var(--green)}
+.stat-v.a{color:var(--amber)}
+.stat-v.neutral{color:var(--text2)}
+.stat-l{
+  font-size:8.5px;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.7px;font-weight:600;
+}
+.stats-bottom-row{display:flex;align-items:center;gap:8px}
+.gauge-wrap{flex:1;display:flex;flex-direction:column;gap:4px}
+.gauge-header{display:flex;justify-content:space-between;align-items:center}
+.gauge-lbl{font-size:9px;color:var(--muted)}
+.gauge-pct{font-size:9px;font-weight:700;font-family:var(--mono);color:var(--text2)}
+.gauge-track{height:5px;background:var(--surface3);border-radius:3px;overflow:hidden}
+.gauge-fill{height:100%;border-radius:3px;transition:width .6s cubic-bezier(.4,0,.2,1),background .5s}
+.gauge-fill.low{background:linear-gradient(90deg,var(--green),rgba(62,207,142,.6))}
+.gauge-fill.mid{background:linear-gradient(90deg,var(--amber),rgba(245,166,35,.6))}
+.gauge-fill.high{background:linear-gradient(90deg,var(--red),rgba(240,82,82,.6))}
+.savings-badge{
+  background:var(--green-dim);color:var(--green);
+  border:1px solid rgba(62,207,142,.25);
+  border-radius:20px;padding:4px 12px;
+  font-size:11px;font-weight:800;white-space:nowrap;
+  font-family:var(--mono);
+}
+.copy-btn{
+  padding:7px 16px;background:var(--accent);border:none;
+  color:#fff;border-radius:var(--radius);font-size:11px;font-weight:700;
+  cursor:pointer;transition:all .15s;white-space:nowrap;
+  letter-spacing:.1px;
+}
+.copy-btn:hover{background:var(--accent2);transform:translateY(-1px);box-shadow:0 4px 12px rgba(124,109,250,.3)}
+.copy-btn:active{transform:translateY(0)}
+.copy-btn.ok{
+  background:var(--green);
+  box-shadow:0 4px 12px rgba(62,207,142,.25);
+}
+
+/* ── CONTEXT MAP ── */
+.ctx-drawer{
+  border-top:1px solid var(--border);background:var(--surface);
+  transition:max-height .3s cubic-bezier(.4,0,.2,1);
+  overflow:hidden;max-height:0;flex-shrink:0;
+}
+.ctx-drawer.open{max-height:200px}
+.ctx-drawer-hdr{
+  padding:7px 14px;display:flex;align-items:center;
+  gap:8px;cursor:pointer;
+}
+.ctx-drawer-hdr:hover{background:var(--surface2)}
+.ctx-drawer-title{
+  font-size:9px;font-weight:800;color:var(--muted);
+  text-transform:uppercase;letter-spacing:1px;
+}
+.ctx-badge{
+  font-size:9px;background:var(--accent-dim);color:var(--accent2);
+  border-radius:20px;padding:1px 8px;
+  border:1px solid rgba(124,109,250,.2);font-weight:700;
+}
+.ctx-chev{margin-left:auto;color:var(--muted);font-size:10px}
+.ctx-body{
+  padding:6px 14px 10px;overflow-y:auto;max-height:150px;
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:4px;
+}
+.ctx-item{
+  display:flex;align-items:center;gap:4px;
+  font-size:10px;font-family:var(--mono);padding:3px 6px;
+  background:var(--surface2);border-radius:4px;
+  border:1px solid var(--border);
+}
+.ctx-from{color:var(--muted);text-decoration:line-through;font-size:9px}
+.ctx-arr{color:var(--border3);font-size:9px}
+.ctx-to{color:var(--accent2);font-weight:700}
+.ctx-tag{
+  font-size:7px;background:var(--accent-dim);border-radius:3px;
+  padding:1px 4px;color:var(--accent2);border:1px solid rgba(124,109,250,.2);
+  margin-left:auto;
+}
+
+/* ── PSEUDO BAR ── */
+.pseudo-bar{
+  border-top:1px solid var(--border);
+  background:var(--surface);
+  padding:10px 14px;display:none;flex-shrink:0;
+  position:relative;overflow:hidden;
+}
+.pseudo-bar::before{
+  content:'';position:absolute;left:0;top:0;bottom:0;width:3px;
+  background:linear-gradient(180deg,var(--accent),var(--accent2));
+}
+.pseudo-bar.show{display:block}
+.pseudo-lbl{
+  font-size:8.5px;text-transform:uppercase;letter-spacing:1px;
+  color:var(--accent2);font-weight:800;margin-bottom:5px;
+}
+.pseudo-text{
+  font-size:11px;color:var(--text2);font-style:italic;
+  line-height:1.65;max-height:80px;overflow-y:auto;
+}
+
+/* ── PREFIX ROW ── */
+.prefix-row{
+  border-top:1px solid var(--border);padding:8px 14px;
+  background:var(--surface);display:flex;align-items:center;
+  gap:7px;flex-shrink:0;
+}
+.prefix-lbl{font-size:10px;color:var(--muted);white-space:nowrap;font-weight:600}
+.prefix-input{
+  flex:1;background:var(--surface2);border:1px solid var(--border);
+  border-radius:var(--radius);color:var(--text);font-size:10px;
+  padding:5px 9px;outline:none;font-family:var(--mono);min-width:0;
+  transition:border-color .15s;
+}
+.prefix-input:focus{border-color:var(--accent);background:var(--surface3)}
+
+/* ── AI OVERLAY ── */
+.ai-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.75);display:none;
+  align-items:center;justify-content:center;z-index:999;backdrop-filter:blur(6px);
+}
+.ai-overlay.show{display:flex}
+.ai-card{
+  background:var(--surface);border:1px solid var(--border2);border-radius:16px;
+  padding:32px 36px;width:360px;text-align:center;box-shadow:var(--shadow-card);
+}
+.ai-spin{
+  width:36px;height:36px;border:2.5px solid var(--border2);
+  border-top-color:var(--accent);border-radius:50%;
+  animation:spin .7s linear infinite;margin:0 auto 16px;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.ai-card h3{font-size:14px;font-weight:700;margin-bottom:6px}
+.ai-card p{color:var(--muted);font-size:12px;line-height:1.6}
+.ai-progress-wrap{margin-top:16px}
+.ai-progress-track{height:3px;background:var(--surface3);border-radius:2px;overflow:hidden;margin-bottom:6px}
+.ai-progress-fill{height:100%;background:var(--accent);border-radius:2px;transition:width .4s}
+.ai-stage{font-size:11px;color:var(--accent2);font-family:var(--mono)}
+.ai-file-list{margin-top:12px;text-align:left;font-size:10px;font-family:var(--mono);color:var(--muted);max-height:80px;overflow-y:auto}
+.ai-file-item{padding:2px 0;display:flex;align-items:center;gap:6px}
+.ai-file-item.done{color:var(--green)}
+.ai-file-item.active{color:var(--accent2)}
+
+/* ── TOAST ── */
+.toast{
+  position:fixed;bottom:20px;right:20px;background:var(--surface2);
+  border:1px solid var(--border2);border-radius:var(--radius);
+  padding:10px 16px;font-size:12px;color:var(--text);z-index:9999;
+  opacity:0;transform:translateY(8px);transition:all .2s;
+  pointer-events:none;box-shadow:var(--shadow-card);
+}
+.toast.show{opacity:1;transform:translateY(0)}
+.toast.ok{border-color:rgba(62,207,142,.4);color:var(--green)}
+.toast.err{border-color:rgba(240,82,82,.4);color:var(--red)}
+
+/* ── SCROLLBARS ── */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+
+/* ── AUTHOR CHIP ── */
+.author-chip{
+  display:flex;align-items:center;gap:6px;padding:4px 10px 4px 6px;
+  border-radius:20px;border:1px solid var(--border2);background:var(--surface2);
+  text-decoration:none;color:var(--text2);font-size:11px;font-weight:500;
+  transition:all .2s;flex-shrink:0;
+}
+.author-chip:hover{border-color:var(--accent);color:var(--accent2);background:var(--accent-dim)}
+.author-chip:hover .ac-avatar{background:var(--accent)}
+.ac-avatar{
+  width:20px;height:20px;border-radius:50%;background:var(--surface3);
+  border:1px solid var(--border2);display:flex;align-items:center;
+  justify-content:center;font-size:10px;transition:background .2s;flex-shrink:0;overflow:hidden;
+}
+.ac-avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.ac-name{line-height:1}
+.ac-gh{font-size:9px;opacity:.6;display:flex;align-items:center;gap:3px}
+
+/* ── SIDEBAR AUTHOR CARD ── */
+.sidebar-author{margin:8px;border-radius:var(--radius-lg);border:1px solid var(--border);background:var(--surface2);padding:12px;display:flex;flex-direction:column;gap:8px;flex-shrink:0}
+.sa-top{display:flex;align-items:center;gap:8px}
+.sa-avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));border:1.5px solid rgba(124,109,250,.35);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;overflow:hidden}
+.sa-avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.sa-info{flex:1;min-width:0}
+.sa-name{font-size:11px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sa-handle{font-size:9px;color:var(--muted);font-family:var(--mono)}
+.sa-bio{font-size:10px;color:var(--text2);line-height:1.5;border-top:1px solid var(--border);padding-top:8px}
+.sa-links{display:flex;gap:5px}
+.sa-link{
+  flex:1;display:flex;align-items:center;justify-content:center;gap:4px;
+  padding:5px 6px;border-radius:var(--radius);border:1px solid var(--border2);
+  background:transparent;color:var(--muted);font-size:9px;font-weight:600;
+  text-decoration:none;transition:all .15s;letter-spacing:.3px;text-transform:uppercase;
+}
+.sa-link:hover{border-color:var(--accent);color:var(--accent2);background:var(--accent-dim)}
+.sa-link svg{flex-shrink:0}
+
+/* ── KEYBOARD SHORTCUT HINT ── */
+.kbd{
+  display:inline-flex;align-items:center;gap:2px;font-size:9px;
+  color:var(--muted);font-family:var(--mono);
+}
+.kbd kbd{
+  background:var(--surface3);border:1px solid var(--border2);border-radius:3px;
+  padding:1px 4px;font-size:9px;font-family:var(--mono);color:var(--text2);
+}
+
+/* ── RESIZABLE PANELS ── */
+.resize-handle{
+  width:4px;flex-shrink:0;cursor:col-resize;background:transparent;
+  transition:background .15s;position:relative;z-index:10;
+}
+.resize-handle:hover,.resize-handle.dragging{background:var(--accent)}
+
+/* ── SEARCH BAR ── */
+.search-bar{
+  padding:6px 10px;border-bottom:1px solid var(--border);flex-shrink:0;
+}
+.search-input{
+  width:100%;background:var(--surface2);border:1px solid var(--border);
+  border-radius:6px;color:var(--text);font-size:11px;padding:4px 8px;
+  outline:none;font-family:inherit;
+}
+.search-input:focus{border-color:var(--accent)}
+.search-input::placeholder{color:var(--muted)}
+
+/* ── FIND/REPLACE IN EDITOR ── */
+.find-bar{
+  position:absolute;top:8px;right:8px;z-index:20;
+  background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);
+  padding:8px 10px;display:none;flex-direction:column;gap:6px;
+  min-width:240px;box-shadow:0 4px 16px rgba(0,0,0,.3);
+}
+.find-bar.show{display:flex}
+.find-bar input{
+  background:var(--surface2);border:1px solid var(--border);border-radius:5px;
+  color:var(--text);font-size:11px;padding:3px 7px;outline:none;font-family:var(--mono);
+}
+.find-bar input:focus{border-color:var(--accent)}
+.find-row{display:flex;gap:5px;align-items:center}
+.find-info{font-size:9px;color:var(--muted);white-space:nowrap}
+
+/* ── REDUCED MOTION ── */
+@media(prefers-reduced-motion:reduce){
+  *{transition:none!important;animation:none!important}
+}
+
+/* ── FOLDER TREE CONNECTOR LINES ── */
+.folder-children{position:relative}
+.folder-children::before{
+  content:'';position:absolute;left:calc(var(--tree-indent,20px) - 8px);
+  top:0;bottom:6px;width:1px;
+  background:var(--border2);pointer-events:none;
+}
+
+/* ── LINE COUNT BADGE on file items ── */
+.fi-lines{
+  font-size:9px;color:var(--muted);flex-shrink:0;
+  font-family:var(--mono);white-space:nowrap;
+}
+
+/* ── PER-FILE TOKEN CHIP in sidebar ── */
+.fi-tok{
+  font-size:9px;padding:1px 5px;border-radius:3px;
+  background:var(--surface3);color:var(--muted);
+  font-family:var(--mono);white-space:nowrap;flex-shrink:0;
+  border:1px solid var(--border);
+}
+.fi-tok.compressed{color:var(--green);background:var(--green-dim);border-color:rgba(62,207,142,.2)}
+
+/* ── GLOBAL TOKEN SUMMARY PANEL (sidebar footer) ── */
+.global-tok-panel{
+  margin:0 0 8px;padding:8px 10px;
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:var(--radius);display:none;flex-direction:column;gap:5px;
+}
+.global-tok-panel.show{display:flex}
+.gtp-title{
+  font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;
+  color:var(--muted);
+}
+.gtp-row{display:flex;align-items:center;gap:6px;font-size:10px}
+.gtp-lbl{color:var(--text2);flex:1}
+.gtp-val{font-family:var(--mono);font-weight:700;color:var(--text2)}
+.gtp-val.green{color:var(--green)}
+.gtp-val.accent{color:var(--accent2)}
+.gtp-divider{height:1px;background:var(--border);margin:2px 0}
+.gtp-lines-row{display:flex;align-items:center;gap:6px;font-size:10px}
+
+/* ── STATS TAB – extended grid (5 cards) ── */
+.stats-grid-5{
+  display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;
+  gap:6px;margin-bottom:10px;
+}
+/* ── GLOBAL STATS TAB ── */
+.global-stats-tab{
+  padding:12px 14px 10px;background:var(--surface);flex-shrink:0;
+  display:none;border-top:1px solid var(--border);
+}
+.global-stats-tab.show{display:block}
+.gst-section-title{
+  font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;
+  color:var(--muted);margin-bottom:8px;
+}
+.gst-file-table{width:100%;border-collapse:collapse;font-size:9.5px;font-family:var(--mono)}
+.gst-file-table th{
+  text-align:left;color:var(--muted);font-size:8.5px;text-transform:uppercase;
+  letter-spacing:.6px;padding:3px 5px;border-bottom:1px solid var(--border);
+  font-weight:700;
+}
+.gst-file-table td{
+  padding:4px 5px;color:var(--text2);border-bottom:1px solid var(--border);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px;
+}
+.gst-file-table td.num{text-align:right;color:var(--text)}
+.gst-file-table td.green{color:var(--green)}
+.gst-file-table td.accent{color:var(--accent2)}
+.gst-file-table tr:last-child td{border-bottom:none}
+.gst-file-table tr.total-row td{
+  font-weight:800;color:var(--text);border-top:1px solid var(--border2);
+}
+.gst-file-table .pending-cell{color:var(--muted);font-style:italic}
+/* folder-tree panel */
+.folder-tree-section{
+  margin-top:10px;border:1px solid var(--border);border-radius:var(--radius);
+  overflow:hidden;
+}
+.folder-tree-hdr{
+  padding:5px 10px;background:var(--surface2);
+  font-size:9px;font-weight:800;text-transform:uppercase;
+  letter-spacing:.8px;color:var(--muted);
+}
+.folder-tree-body{
+  padding:8px 10px;font-size:10px;font-family:var(--mono);
+  color:var(--text2);line-height:1.9;background:var(--bg);
+  white-space:pre;overflow-x:auto;
+}
+.ftr-folder{color:var(--accent2);font-weight:600}
+.ftr-file{color:var(--text2)}
+.ftr-meta{color:var(--muted);font-size:9px}
+</style>
+</head>
+<body>
+
+<!-- AI overlay -->
+<div class="ai-overlay" id="aiOverlay">
+  <div class="ai-card">
+    <div class="ai-spin"></div>
+    <h3>Claude is compressing your code</h3>
+    <p>Semantic analysis, identifier mapping, and logic summarization in progress.</p>
+    <div class="ai-progress-wrap">
+      <div class="ai-progress-track"><div class="ai-progress-fill" id="aiProg" style="width:5%"></div></div>
+      <div class="ai-stage" id="aiStage">Initializing...</div>
+    </div>
+    <div class="ai-file-list" id="aiFileList"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Header -->
+<header>
+  <a class="logo" href="#">
+    <div class="logo-icon">⚡</div>
+    <span class="logo-text">TokenCrush</span>
+    <span class="logo-badge">FOR CLAUDE</span>
+  </a>
+
+  <!-- Global session stats -->
+  <div class="global-stats" id="globalStats" style="display:none">
+    <div class="hdr-sep"></div>
+    <div class="gs-item">Files: <span class="gs-val" id="gsTotalFiles">0</span></div>
+    <div class="gs-sep"></div>
+    <div class="gs-item">Saved: <span class="gs-val green" id="gsTotalSaved">0</span> tok</div>
+    <div class="gs-sep"></div>
+    <div class="gs-item">Avg: <span class="gs-val green" id="gsAvgReduction">0%</span></div>
+  </div>
+
+  <div class="hdr-right">
+    <span class="kbd"><kbd>⌘</kbd><kbd>↵</kbd> compress</span>
+    <span class="kbd"><kbd>⌘</kbd><kbd>F</kbd> find</span>
+    <div class="hdr-sep"></div>
+    <button class="btn" onclick="loadExample()">Load example</button>
+    <button class="btn" onclick="clearAll()">Clear all</button>
+    <button class="btn btn-green" onclick="exportBundle()">Export bundle</button>
+    <button class="btn btn-accent" onclick="triggerFileInput()">+ Add files</button>
+    <input type="file" id="globalFileInput" multiple accept=".js,.ts,.jsx,.tsx,.html,.css,.py,.json,.md,.txt,.zip" style="display:none" onchange="handleFileInputChange(this)">
+    <input type="file" id="globalFolderInput" multiple webkitdirectory style="display:none" onchange="handleFolderInputChange(this)">
+    <div class="hdr-sep"></div>
+    <a class="author-chip" href="https://github.com/rhshourav/TC" target="_blank" rel="noopener" title="View on GitHub by @rhshourav">
+      <div class="ac-avatar">
+        <img src="https://github.com/rhshourav.png" alt="rhshourav" onerror="this.parentElement.textContent='R'">
+      </div>
+      <div>
+        <div class="ac-name">rhshourav</div>
+        <div class="ac-gh">
+          <svg width="8" height="8" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          github
+        </div>
+      </div>
+    </a>
+    <div class="hdr-sep"></div>
+    <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" type="button" aria-pressed="false" aria-label="Switch to light mode" title="Switch to light mode">
+      <span class="tt-track-icon tt-sun" aria-hidden="true">☀️</span>
+      <span class="tt-track-icon tt-moon" aria-hidden="true">🌙</span>
+      <span class="tt-knob" aria-hidden="true"></span>
+    </button>
+  </div>
+</header>
+
+<div class="workspace">
+
+  <!-- Sidebar: File Manager -->
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <span class="sidebar-title">Files</span>
+      <button class="add-file-btn" onclick="triggerFileInput()" title="Add files">+</button>
+    </div>
+
+    <!-- Search files -->
+    <div class="search-bar">
+      <input class="search-input" id="fileSearch" placeholder="Filter files…" oninput="filterFiles(this.value)">
+    </div>
+
+    <div class="drop-zone" id="sidebarDrop" onclick="triggerFileInput()" ondragover="onDragOver(event,'sidebarDrop')" ondragleave="onDragLeave('sidebarDrop')" ondrop="onDrop(event,'sidebarDrop')">
+      <div class="dz-icon">📂</div>
+      <strong>Drop files, folders or ZIP</strong>
+      <p>.js .ts .html .css .py<br>.json .md .zip · folders OK</p>
+    </div>
+
+    <div class="file-list" id="fileList"></div>
+
+    <!-- Author card -->
+    <div class="sidebar-author">
+      <div class="sa-top">
+        <div class="sa-avatar">
+          <img src="https://github.com/rhshourav.png" alt="rhshourav" onerror="this.parentElement.textContent='R'">
+        </div>
+        <div class="sa-info">
+          <div class="sa-name">Shourav</div>
+          <div class="sa-handle">@rhshourav</div>
+        </div>
+      </div>
+      <div class="sa-bio">Built TokenCrush to stop burning context window on whitespace and comments.</div>
+      <div class="sa-links">
+        <a class="sa-link" href="https://github.com/rhshourav/TC" target="_blank" rel="noopener">
+          <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          Repo
+        </a>
+        <a class="sa-link" href="https://github.com/rhshourav" target="_blank" rel="noopener">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
+          Profile
+        </a>
+      </div>
+    </div>
+
+    <div class="sidebar-footer">
+      <!-- Global token summary panel -->
+      <div class="global-tok-panel" id="globalTokPanel">
+        <div class="gtp-title">All Files · Summary</div>
+        <div class="gtp-row">
+          <span class="gtp-lbl">Total lines</span>
+          <span class="gtp-val accent" id="gtpLines">—</span>
+        </div>
+        <div class="gtp-divider"></div>
+        <div class="gtp-row">
+          <span class="gtp-lbl">Tokens before</span>
+          <span class="gtp-val" id="gtpTokIn">—</span>
+        </div>
+        <div class="gtp-row">
+          <span class="gtp-lbl">Tokens after</span>
+          <span class="gtp-val green" id="gtpTokOut">—</span>
+        </div>
+        <div class="gtp-row">
+          <span class="gtp-lbl">Saved</span>
+          <span class="gtp-val green" id="gtpSaved">—</span>
+        </div>
+        <div class="gtp-row">
+          <span class="gtp-lbl">Reduction</span>
+          <span class="gtp-val green" id="gtpReduction">—</span>
+        </div>
+      </div>
+      <button class="compress-all-btn" id="compressAllBtn" onclick="compressAll()" disabled>
+        <span>⚡</span> Compress All
+      </button>
+      <div class="file-count-badge" id="fileCountBadge">No files loaded</div>
+    </div>
+  </div>
+
+  <!-- Resize handle: sidebar / editor -->
+  <div class="resize-handle" id="rh1" title="Drag to resize"></div>
+
+  <!-- Center: Editor -->
+  <div class="editor-panel" id="editorPanel">
+    <div class="editor-header">
+      <span class="editor-filename" id="editorFilename">No file selected</span>
+      <span class="lang-badge lang-other" id="langBadge">—</span>
+      <span class="token-pill" id="editorTokenPill">0 tokens</span>
+    </div>
+
+    <div class="controls-bar">
+      <div class="ctrl-row1">
+        <div class="tgl-grp">
+          <label class="tgl"><input type="checkbox" id="tglWS" checked><span class="tgl-s"></span></label>
+          <span class="tgl-lbl">Whitespace</span>
+        </div>
+        <div class="sep"></div>
+        <div class="tgl-grp">
+          <label class="tgl"><input type="checkbox" id="tglCmt" checked><span class="tgl-s"></span></label>
+          <span class="tgl-lbl">Comments</span>
+        </div>
+        <div class="sep"></div>
+        <div class="tgl-grp">
+          <label class="tgl"><input type="checkbox" id="tglRename" checked><span class="tgl-s"></span></label>
+          <span class="tgl-lbl">Minify names</span>
+        </div>
+        <div class="sep"></div>
+        <div class="tgl-grp">
+          <label class="tgl"><input type="checkbox" id="tglCtx" checked><span class="tgl-s"></span></label>
+          <span class="tgl-lbl">Context map</span>
+        </div>
+        <div class="sep"></div>
+        <div class="tgl-grp">
+          <label class="tgl"><input type="checkbox" id="tglAutoCompress"><span class="tgl-s"></span></label>
+          <span class="tgl-lbl">Auto-compress</span>
+        </div>
+      </div>
+      <div class="ctrl-row2">
+        <span class="ai-lbl">AI layer:</span>
+        <div class="spill active" data-s="none" onclick="setStrategy('none',this)"><span class="sd"></span>Off</div>
+        <div class="spill" data-s="pseudo" onclick="setStrategy('pseudo',this)"><span class="sd"></span>Pseudocode</div>
+        <div class="spill" data-s="semantic" onclick="setStrategy('semantic',this)"><span class="sd"></span>Semantic</div>
+        <div class="spill" data-s="deep" onclick="setStrategy('deep',this)"><span class="sd"></span>Deep (max)</div>
+      </div>
+    </div>
+
+    <!-- Token budget bar -->
+    <div class="budget-bar-wrap" id="budgetBarWrap" title="">
+      <div class="budget-bar-fill" id="budgetBarFill"></div>
+    </div>
+
+    <div class="code-wrap" id="codeWrap" ondragover="onDragOver(event,'codeWrap')" ondragleave="onDragLeave('codeWrap')" ondrop="onDrop(event,'codeWrap')">
+      <div class="empty-drop" id="editorEmpty">
+        <div class="ed-icon">📂</div>
+        <p>Select a file from the sidebar<br>or drop files / a ZIP here</p>
+      </div>
+      <textarea class="code-editor" id="codeEditor" placeholder="// Paste code here or select a file…" oninput="onEditorInput()" style="display:none"></textarea>
+
+      <!-- Find bar -->
+      <div class="find-bar" id="findBar">
+        <div class="find-row">
+          <input id="findInput" placeholder="Find…" oninput="doFind()" style="flex:1">
+          <span class="find-info" id="findInfo">0/0</span>
+          <button class="btn" style="padding:3px 8px;font-size:10px" onclick="findPrev()">↑</button>
+          <button class="btn" style="padding:3px 8px;font-size:10px" onclick="findNext()">↓</button>
+          <button class="btn" style="padding:3px 8px;font-size:10px" onclick="closeFindBar()">✕</button>
+        </div>
+        <div class="find-row">
+          <input id="replaceInput" placeholder="Replace…" style="flex:1">
+          <button class="btn" style="padding:3px 8px;font-size:10px" onclick="doReplace()">Replace</button>
+          <button class="btn" style="padding:3px 8px;font-size:10px" onclick="doReplaceAll()">All</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Editor meta: line/char count -->
+    <div class="editor-meta-row" id="editorMetaRow" style="display:none">
+      <span class="em-stat">Lines: <span id="emLines">0</span></span>
+      <span class="em-stat">Chars: <span id="emChars">0</span></span>
+      <span class="em-stat">Cursor: <span id="emCursor">1:1</span></span>
+    </div>
+  </div>
+
+  <!-- Resize handle: editor / output -->
+  <div class="resize-handle" id="rh2" title="Drag to resize"></div>
+
+  <!-- Right: Output -->
+  <div class="output-panel" id="outputPanel">
+
+    <!-- Header -->
+    <div class="out-header">
+      <span class="out-header-label">Output</span>
+      <span class="out-filename-pill" id="outFilename" title=""></span>
+    </div>
+
+    <!-- Tabs -->
+    <div class="out-tabs">
+      <div class="out-tab active" data-tab="compressed" onclick="switchTab('compressed',this)">
+        <span class="tab-icon">⚡</span>Compressed
+      </div>
+      <div class="out-tab" data-tab="diff" onclick="switchTab('diff',this)">
+        <span class="tab-icon">±</span>Diff
+      </div>
+      <div class="out-tab" data-tab="prompt" onclick="switchTab('prompt',this)">
+        <span class="tab-icon">✦</span>Prompt
+      </div>
+      <div class="out-tab" data-tab="bundle" onclick="switchTab('bundle',this)">
+        <span class="tab-icon">◈</span>Bundle
+      </div>
+      <div class="out-tab" data-tab="history" onclick="switchTab('history',this)">
+        <span class="tab-icon">◷</span>History
+      </div>
+      <div class="out-tab" data-tab="allstats" onclick="switchTab('allstats',this)">
+        <span class="tab-icon">⊞</span>All Stats
+      </div>
+    </div>
+
+    <!-- Progress strip -->
+    <div class="progress-strip"><div class="progress-fill" id="progressFill"></div></div>
+
+    <!-- Content area -->
+    <div class="out-content">
+      <div class="out-empty" id="outEmpty">
+        <div class="oe-icon">⚡</div>
+        <p>Hit <strong>Compress</strong> to crunch your code<br>and reclaim context window space.</p>
+        <span class="out-empty-hint">⌘ + ↵ to compress fast</span>
+      </div>
+      <textarea class="out-code" id="outCode" readonly style="display:none"></textarea>
+      <div class="diff-view" id="diffView"></div>
+      <div class="prompt-view" id="promptView"></div>
+      <div class="bundle-view" id="bundleView"></div>
+      <div class="history-view" id="historyView"></div>
+      <div class="diff-view" id="allstatsView"></div>
+    </div>
+
+    <!-- AI summary -->
+    <div class="pseudo-bar" id="pseudoBar">
+      <div class="pseudo-lbl">AI Summary</div>
+      <div class="pseudo-text" id="pseudoText"></div>
+    </div>
+
+    <!-- Stats block -->
+    <div class="stats-bar" id="statsBar">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-v neutral" id="sIn">0</div>
+          <div class="stat-l">Input tokens</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-v g" id="sOut">0</div>
+          <div class="stat-l">Output tokens</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-v a" id="sPct">0%</div>
+          <div class="stat-l">Reduction</div>
+        </div>
+      </div>
+      <div class="stats-bottom-row">
+        <div class="gauge-wrap">
+          <div class="gauge-header">
+            <span class="gauge-lbl" id="gaugeLbl">Tokens used</span>
+            <span class="gauge-pct" id="gaugePct">—</span>
+          </div>
+          <div class="gauge-track">
+            <div class="gauge-fill low" id="gaugeFill" style="width:0%"></div>
+          </div>
+        </div>
+        <div class="savings-badge" id="savingsBadge">-0</div>
+        <button class="copy-btn" id="copyBtn" onclick="copyOutput()">Copy</button>
+      </div>
+    </div>
+
+    <!-- Context map drawer -->
+    <div class="ctx-drawer" id="ctxDrawer">
+      <div class="ctx-drawer-hdr" onclick="toggleCtx()">
+        <span class="ctx-drawer-title">Identifier map</span>
+        <span class="ctx-badge" id="ctxBadge">0</span>
+        <span class="ctx-chev" id="ctxChev">▲</span>
+      </div>
+      <div class="ctx-body" id="ctxBody"></div>
+    </div>
+
+    <!-- Prefix row -->
+    <div class="prefix-row">
+      <span class="prefix-lbl">Prefix</span>
+      <input class="prefix-input" id="prefixInput" value="[COMPRESSED — see context map for identifier mappings]">
+      <button class="btn btn-accent" onclick="rebuildPrompt()" style="flex-shrink:0;font-size:10px;padding:5px 10px">Apply</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─────────────────────────────────────────
+//  STATE
+// ─────────────────────────────────────────
+const files = new Map();
+// folders: Map<folderId, { name, parentId|null, collapsed:bool }>
+const folders = new Map();
+let activeFileId = null;
+let currentStrategy = 'none';
+let compressionHistory = [];  // { ts, fileName, tokenIn, tokenOut, compressed, ctxMap }
+let autoCompressTimer = null;
+const CLAUDE_CTX = 200000; // Claude's context window (tokens)
+
+// ─────────────────────────────────────────
+//  HELPERS
+// ─────────────────────────────────────────
+function uid(){ return Math.random().toString(36).slice(2,9); }
+function escH(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function estTok(s){ return s ? Math.ceil(s.length/3.8) : 0; }
+function fmtBytes(b){ return b<1024?b+'B':b<1048576?(b/1024).toFixed(1)+'KB':(b/1048576).toFixed(1)+'MB'; }
+function fmtTime(ts){ const d=new Date(ts); return d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'}); }
+
+function getLang(name){
+  const ext=name.split('.').pop().toLowerCase();
+  const map={js:'js',jsx:'js',ts:'js',tsx:'js',mjs:'js',cjs:'js',html:'html',htm:'html',css:'css',scss:'css',sass:'css',less:'css',py:'py',python:'py',json:'other',md:'other',txt:'other',yaml:'other',yml:'other'};
+  return map[ext]||'other';
+}
+function getLangBadgeClass(lang){ return {js:'lang-js',html:'lang-html',css:'lang-css',py:'lang-py',other:'lang-other'}[lang]||'lang-other'; }
+function getLangIcon(lang){ return {js:'📜',html:'🌐',css:'🎨',py:'🐍',other:'📄'}[lang]||'📄'; }
+function isCompressible(name){
+  const ext=name.split('.').pop().toLowerCase();
+  return ['js','jsx','ts','tsx','html','htm','css','scss','sass','py','json','md','txt','mjs','cjs','less'].includes(ext);
+}
+
+// ─────────────────────────────────────────
+//  TOAST
+// ─────────────────────────────────────────
+function showToast(msg,type='ok',dur=2500){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className='toast show '+(type==='ok'?'ok':'err');
+  setTimeout(()=>t.className='toast',dur);
+}
+function setProgress(pct){ document.getElementById('progressFill').style.width=pct+'%'; }
+function setAIProg(pct,stage){ document.getElementById('aiProg').style.width=pct+'%'; document.getElementById('aiStage').textContent=stage||''; }
+
+// ─────────────────────────────────────────
+//  THEME
+// ─────────────────────────────────────────
+const THEME_KEY='tokencrush-theme';
+function loadStoredTheme(){ try{ return localStorage.getItem(THEME_KEY); }catch(e){ return null; } }
+function storeTheme(t){ try{ localStorage.setItem(THEME_KEY,t); }catch(e){} }
+function applyTheme(theme){
+  document.documentElement.setAttribute('data-theme',theme);
+  const toggle=document.getElementById('themeToggle');
+  if(toggle){
+    const next=theme==='light'?'dark':'light';
+    toggle.setAttribute('aria-pressed',theme==='light');
+    toggle.title='Switch to '+next+' mode';
+    toggle.setAttribute('aria-label','Switch to '+next+' mode');
+  }
+  const meta=document.getElementById('themeColorMeta');
+  if(meta) meta.setAttribute('content',theme==='light'?'#f4f4f7':'#0b0b0e');
+}
+function toggleTheme(){
+  const next=(document.documentElement.getAttribute('data-theme')||'dark')==='dark'?'light':'dark';
+  applyTheme(next); storeTheme(next);
+}
+try{
+  window.matchMedia('(prefers-color-scheme:light)').addEventListener('change',e=>{
+    if(!loadStoredTheme()) applyTheme(e.matches?'light':'dark');
+  });
+}catch(e){}
+
+// ─────────────────────────────────────────
+//  TOKEN BUDGET BAR
+// ─────────────────────────────────────────
+function updateBudgetBar(){
+  const f=files.get(activeFileId); if(!f) return;
+  const tok=estTok(f.content);
+  const pct=Math.min(100,Math.round((tok/CLAUDE_CTX)*100));
+  const fill=document.getElementById('budgetBarFill');
+  const wrap=document.getElementById('budgetBarWrap');
+  fill.style.width=pct+'%';
+  fill.className='budget-bar-fill'+(pct>80?' warn':'');
+  wrap.title=`${tok.toLocaleString()} / ${CLAUDE_CTX.toLocaleString()} tokens (${pct}% of Claude context)`;
+}
+
+// ─────────────────────────────────────────
+//  GLOBAL SESSION STATS
+// ─────────────────────────────────────────
+function updateGlobalStats(){
+  const done=[...files.values()].filter(f=>f.compressed);
+  const totalIn=done.reduce((s,f)=>s+f.tokenIn,0);
+  const totalOut=done.reduce((s,f)=>s+f.tokenOut,0);
+  const saved=totalIn-totalOut;
+  const avg=totalIn>0?Math.round((saved/totalIn)*100):0;
+  const gs=document.getElementById('globalStats');
+  if(!done.length){ gs.style.display='none'; return; }
+  gs.style.display='flex';
+  document.getElementById('gsTotalFiles').textContent=done.length;
+  document.getElementById('gsTotalSaved').textContent=saved.toLocaleString();
+  document.getElementById('gsAvgReduction').textContent=avg+'%';
+}
+
+// ─────────────────────────────────────────
+//  EDITOR META (line/char/cursor)
+// ─────────────────────────────────────────
+function updateEditorMeta(){
+  const ta=document.getElementById('codeEditor');
+  const meta=document.getElementById('editorMetaRow');
+  if(ta.style.display==='none'){ meta.style.display='none'; return; }
+  meta.style.display='flex';
+  const val=ta.value;
+  const lines=val.split('\n').length;
+  document.getElementById('emLines').textContent=lines.toLocaleString();
+  document.getElementById('emChars').textContent=val.length.toLocaleString();
+  // Cursor position
+  const pos=ta.selectionStart;
+  const before=val.substring(0,pos);
+  const row=before.split('\n').length;
+  const col=pos-before.lastIndexOf('\n');
+  document.getElementById('emCursor').textContent=row+':'+col;
+}
+// Update cursor on click/key
+document.addEventListener('DOMContentLoaded',()=>{
+  const ta=document.getElementById('codeEditor');
+  ta.addEventListener('click',updateEditorMeta);
+  ta.addEventListener('keyup',updateEditorMeta);
+});
+
+// ─────────────────────────────────────────
+//  TOKEN PILL COLOUR
+// ─────────────────────────────────────────
+function updateTokenPill(tok){
+  const pill=document.getElementById('editorTokenPill');
+  pill.textContent=tok.toLocaleString()+' tokens';
+  const pct=(tok/CLAUDE_CTX)*100;
+  pill.className='token-pill'+(pct>80?' danger':pct>50?' warn':'');
+}
+
+// ─────────────────────────────────────────
+//  FILE MANAGEMENT
+// ─────────────────────────────────────────
+// ─────────────────────────────────────────
+//  FOLDER MANAGEMENT
+// ─────────────────────────────────────────
+function addFolder(name, parentId=null){
+  // Deduplicate: return existing if same name + parent
+  for(const [id,f] of folders){
+    if(f.name===name && f.parentId===parentId) return id;
+  }
+  const id=uid();
+  folders.set(id,{name,parentId,collapsed:false});
+  return id;
+}
+
+function deleteFolder(folderId,e){
+  if(e) e.stopPropagation();
+  // Delete all children files
+  for(const [id,f] of files){
+    if(f.folderId===folderId||isDescendantFolder(f.folderId,folderId)){
+      files.delete(id);
+      if(activeFileId===id){ activeFileId=null; showEditorEmpty(); showOutEmpty(); }
+    }
+  }
+  // Delete child folders recursively
+  for(const [id] of folders){
+    if(isDescendantFolder(id,folderId)) folders.delete(id);
+  }
+  folders.delete(folderId);
+  renderFileList(); updateFileCount(); updateGlobalStats();
+  if(activeFileId===null&&files.size>0) selectFile(files.keys().next().value);
+}
+
+function isDescendantFolder(folderId, ancestorId){
+  if(!folderId) return false;
+  let cur=folderId;
+  while(cur){
+    const f=folders.get(cur);
+    if(!f) return false;
+    if(f.parentId===ancestorId) return true;
+    cur=f.parentId;
+  }
+  return false;
+}
+
+function toggleFolder(folderId){
+  const f=folders.get(folderId); if(!f) return;
+  f.collapsed=!f.collapsed;
+  renderFileList();
+}
+
+function getFolderPath(folderId){
+  const parts=[];
+  let cur=folderId;
+  while(cur){
+    const f=folders.get(cur);
+    if(!f) break;
+    parts.unshift(f.name);
+    cur=f.parentId;
+  }
+  return parts.join('/');
+}
+
+function addFile(name,content,folderId=null){
+  if(!isCompressible(name)){ showToast('Skipped: '+name+' (unsupported type)','err'); return; }
+  // Deduplicate within same folder
+  for(const [id,f] of files){
+    if(f.name===name && f.folderId===folderId){
+      f.content=content; f.tokenIn=estTok(content);
+      f.compressed=''; f.ctxMap=[]; f.pseudo='';
+      renderFileList();
+      return id;
+    }
+  }
+  const id=uid();
+  files.set(id,{name,content,lang:getLang(name),folderId,compressed:'',ctxMap:[],pseudo:'',tokenIn:estTok(content),tokenOut:0});
+  renderFileList();
+  if(!activeFileId) selectFile(id);
+  updateFileCount();
+  return id;
+}
+
+// ─────────────────────────────────────────
+//  HANDLE DROPPED / SELECTED FILES
+// ─────────────────────────────────────────
+async function handleFiles(fileList, parentFolderId=null){
+  const arr=Array.from(fileList);
+  for(const f of arr){
+    if(f.name.endsWith('.zip')) await handleZip(f,parentFolderId);
+    else{ const text=await f.text(); addFile(f.name,text,parentFolderId); }
+  }
+}
+
+// Handle DataTransferItemList (supports folders via webkitGetAsEntry)
+async function handleDataTransferItems(items){
+  const entries=[];
+  for(const item of items){
+    if(item.kind!=='file') continue;
+    const entry=item.webkitGetAsEntry ? item.webkitGetAsEntry() : null;
+    if(entry) entries.push(entry);
+    else{
+      // Fallback: treat as plain file
+      const f=item.getAsFile();
+      if(f) await handleFiles([f]);
+    }
+  }
+  for(const entry of entries){
+    await processEntry(entry,null);
+  }
+  renderFileList(); updateFileCount(); updateGlobalStats();
+}
+
+async function processEntry(entry, parentFolderId){
+  if(entry.isDirectory){
+    const folderId=addFolder(entry.name,parentFolderId);
+    const reader=entry.createReader();
+    // Chrome's createReader returns up to 100 entries per call; loop until done
+    const allEntries=[];
+    const readBatch=()=>new Promise((res,rej)=>reader.readEntries(res,rej));
+    let batch;
+    do{
+      batch=await readBatch();
+      allEntries.push(...batch);
+    }while(batch.length>0);
+    for(const child of allEntries) await processEntry(child,folderId);
+  } else if(entry.isFile){
+    const file=await new Promise((res,rej)=>entry.file(res,rej));
+    if(file.name.endsWith('.zip')) await handleZip(file,parentFolderId);
+    else if(isCompressible(file.name)){
+      const text=await file.text();
+      addFile(file.name,text,parentFolderId);
+    }
+  }
+}
+
+async function handleZip(file,parentFolderId=null){
+  try{
+    const zip=await JSZip.loadAsync(file);
+    // Build folder structure from zip paths
+    const folderCache={};
+    function ensureFolder(parts,parent){
+      if(!parts.length) return parent;
+      const key=parts.join('/');
+      if(folderCache[key]) return folderCache[key];
+      const id=addFolder(parts[parts.length-1],parent);
+      folderCache[key]=id;
+      return id;
+    }
+    const entries=[];
+    zip.forEach((path,entry)=>{
+      if(!entry.dir&&isCompressible(path.split('/').pop())) entries.push({path,entry});
+    });
+    if(!entries.length){ showToast('ZIP has no supported code files','err'); return; }
+    let added=0;
+    for(const {path,entry} of entries){
+      const parts=path.split('/').filter(Boolean);
+      const fileName=parts.pop();
+      let fid=parentFolderId;
+      if(parts.length){
+        // Build nested folders
+        for(let i=0;i<parts.length;i++){
+          fid=ensureFolder(parts.slice(0,i+1),i===0?parentFolderId:folderCache[parts.slice(0,i).join('/')]);
+        }
+      }
+      const text=await entry.async('text');
+      addFile(fileName,text,fid); added++;
+    }
+    showToast(`Extracted ${added} files from ${file.name}`);
+  }catch(e){ showToast('Failed to read ZIP: '+e.message,'err'); }
+}
+
+// Handle webkitdirectory input (flat list with webkitRelativePath)
+async function handleFolderInputChange(input){
+  const fileArr=Array.from(input.files);
+  // Build folder tree from webkitRelativePath
+  const folderCache={};
+  function ensureFolder(parts,startParent){
+    let parent=startParent||null;
+    let pathSoFar='';
+    for(let i=0;i<parts.length;i++){
+      pathSoFar=pathSoFar?pathSoFar+'/'+parts[i]:parts[i];
+      if(folderCache[pathSoFar]){
+        parent=folderCache[pathSoFar];
+      } else {
+        const id=addFolder(parts[i],parent);
+        folderCache[pathSoFar]=id;
+        parent=id;
+      }
+    }
+    return parent;
+  }
+  for(const f of fileArr){
+    const rel=f.webkitRelativePath||f.name;
+    const parts=rel.split('/').filter(Boolean);
+    const fileName=parts.pop();
+    const folderId=parts.length?ensureFolder(parts,null):null;
+    if(!isCompressible(fileName)){ continue; }
+    const text=await f.text();
+    addFile(fileName,text,folderId);
+  }
+  input.value='';
+  renderFileList(); updateFileCount();
+}
+
+function handleFileInputChange(input){ handleFiles(input.files); input.value=''; }
+function triggerFileInput(){ document.getElementById('globalFileInput').click(); }
+function triggerFolderInput(){ document.getElementById('globalFolderInput').click(); }
+
+// ─────────────────────────────────────────
+//  FILE SEARCH / FILTER
+// ─────────────────────────────────────────
+let fileFilter='';
+function filterFiles(q){ fileFilter=q.toLowerCase(); renderFileList(); }
+
+// ─────────────────────────────────────────
+//  FILE LIST RENDER (tree-aware)
+// ─────────────────────────────────────────
+function countLines(content){ return content ? content.split('\n').length : 0; }
+
+function renderFileList(){
+  const list=document.getElementById('fileList');
+  list.innerHTML='';
+  if(!files.size){ list.innerHTML='<div style="text-align:center;padding:20px 10px;font-size:10px;color:var(--muted)">No files yet</div>'; return; }
+
+  // Build a tree structure: rootItems = [ {type:'folder'|'file', id, depth} ]
+  function getChildren(parentFolderId){
+    const childFolders=[];
+    const childFiles=[];
+    for(const [id,f] of folders){ if(f.parentId===parentFolderId) childFolders.push(id); }
+    for(const [id,f] of files){ if(f.folderId===parentFolderId) childFiles.push(id); }
+    return {childFolders,childFiles};
+  }
+
+  function renderNode(parentFolderId, depth){
+    const {childFolders,childFiles}=getChildren(parentFolderId);
+    // Render child folders first
+    for(const fid of childFolders){
+      const fo=folders.get(fid); if(!fo) continue;
+      // Count files in this folder subtree
+      const subtreeFiles=[...files.values()].filter(f=>f.folderId===fid||isDescendantFolder(f.folderId,fid));
+      const div=document.createElement('div');
+      div.className='folder-item'+(depth>0?' indented':'');
+      div.dataset.depth=depth;
+      div.style.setProperty('--depth',depth);
+      div.innerHTML=`
+        <span class="folder-toggle ${fo.collapsed?'':'open'}" id="ftgl_${fid}">▶</span>
+        <span class="folder-icon">📁</span>
+        <span class="folder-name" title="${escH(getFolderPath(fid))}">${escH(fo.name)}</span>
+        <span class="folder-count">${subtreeFiles.length}</span>
+        <button class="folder-del" onclick="deleteFolder('${fid}',event)" title="Remove folder">✕</button>
+      `;
+      div.addEventListener('click',e=>{if(!e.target.classList.contains('folder-del'))toggleFolder(fid);});
+      list.appendChild(div);
+      // Children container
+      const childWrap=document.createElement('div');
+      childWrap.className='folder-children'+(fo.collapsed?' collapsed':'');
+      const childH=fo.collapsed?0:null;
+      if(childH!==null) childWrap.style.maxHeight=childH+'px';
+      list.appendChild(childWrap);
+      // Temporarily render children into childWrap
+      const savedParent=list;
+      // Use a sub-render approach: capture to fragment
+      const frag=document.createDocumentFragment();
+      const tempList={appendChild:n=>frag.appendChild(n),innerHTML:''};
+      // Swap list temporarily
+      const origInner=list.innerHTML; // not used, just render direct
+      renderNodeInto(childWrap, fid, depth+1);
+    }
+    // Render files at this level
+    for(const id of childFiles){
+      const f=files.get(id);
+      if(fileFilter&&!f.name.toLowerCase().includes(fileFilter)) continue;
+      const lines=countLines(f.content);
+      const hasDone=f.compressed!=='';
+      const div=document.createElement('div');
+      div.className='file-item'+(id===activeFileId?' active':'')+(depth>0?' indented':'');
+      div.dataset.id=id; div.dataset.depth=depth;
+      div.style.setProperty('--depth',depth);
+      let tokChip='';
+      if(hasDone){
+        const saved=f.tokenIn-f.tokenOut;
+        const pct=f.tokenIn>0?Math.round((saved/f.tokenIn)*100):0;
+        tokChip=`<span class="fi-tok compressed" title="Before: ${f.tokenIn} · After: ${f.tokenOut} · -${pct}%">${f.tokenOut}tok</span>`;
+      } else {
+        tokChip=`<span class="fi-tok" title="${f.tokenIn} tokens">${f.tokenIn}tok</span>`;
+      }
+      div.innerHTML=`
+        <span class="fi-status ${hasDone?'done':'pending'}"></span>
+        <span class="fi-icon">${getLangIcon(f.lang)}</span>
+        <span class="fi-name" title="${escH(f.name)}">${escH(f.name)}</span>
+        <span class="fi-lines">${lines.toLocaleString()}L</span>
+        ${tokChip}
+        <button class="fi-del" onclick="deleteFile('${id}',event)" title="Remove">✕</button>
+      `;
+      div.addEventListener('click',()=>selectFile(id));
+      list.appendChild(div);
+    }
+  }
+
+  function renderNodeInto(container, parentFolderId, depth){
+    const {childFolders,childFiles}=getChildren(parentFolderId);
+    for(const fid of childFolders){
+      const fo=folders.get(fid); if(!fo) continue;
+      const subtreeFiles=[...files.values()].filter(f=>f.folderId===fid||isDescendantFolder(f.folderId,fid));
+      const div=document.createElement('div');
+      div.className='folder-item indented';
+      div.dataset.depth=depth;
+      div.style.setProperty('--depth',depth);
+      div.innerHTML=`
+        <span class="folder-toggle ${fo.collapsed?'':'open'}" id="ftgl_${fid}">▶</span>
+        <span class="folder-icon">📁</span>
+        <span class="folder-name" title="${escH(getFolderPath(fid))}">${escH(fo.name)}</span>
+        <span class="folder-count">${subtreeFiles.length}</span>
+        <button class="folder-del" onclick="deleteFolder('${fid}',event)" title="Remove folder">✕</button>
+      `;
+      div.addEventListener('click',e=>{if(!e.target.classList.contains('folder-del'))toggleFolder(fid);});
+      container.appendChild(div);
+      const childWrap=document.createElement('div');
+      childWrap.className='folder-children'+(fo.collapsed?' collapsed':'');
+      container.appendChild(childWrap);
+      renderNodeInto(childWrap, fid, depth+1);
+    }
+    for(const id of childFiles){
+      const f=files.get(id);
+      if(fileFilter&&!f.name.toLowerCase().includes(fileFilter)) continue;
+      const lines=countLines(f.content);
+      const hasDone=f.compressed!=='';
+      const div=document.createElement('div');
+      div.className='file-item indented'+(id===activeFileId?' active':'');
+      div.dataset.id=id; div.dataset.depth=depth;
+      div.style.setProperty('--depth',depth);
+      let tokChip='';
+      if(hasDone){
+        const saved=f.tokenIn-f.tokenOut;
+        const pct=f.tokenIn>0?Math.round((saved/f.tokenIn)*100):0;
+        tokChip=`<span class="fi-tok compressed" title="Before: ${f.tokenIn} · After: ${f.tokenOut} · -${pct}%">${f.tokenOut}tok</span>`;
+      } else {
+        tokChip=`<span class="fi-tok" title="${f.tokenIn} tokens">${f.tokenIn}tok</span>`;
+      }
+      div.innerHTML=`
+        <span class="fi-status ${hasDone?'done':'pending'}"></span>
+        <span class="fi-icon">${getLangIcon(f.lang)}</span>
+        <span class="fi-name" title="${escH(f.name)}">${escH(f.name)}</span>
+        <span class="fi-lines">${lines.toLocaleString()}L</span>
+        ${tokChip}
+        <button class="fi-del" onclick="deleteFile('${id}',event)" title="Remove">✕</button>
+      `;
+      div.addEventListener('click',()=>selectFile(id));
+      container.appendChild(div);
+    }
+  }
+
+  // Root-level render: files with no folder first, then root folders
+  // Root-level files (folderId=null)
+  const rootFiles=[...files.entries()].filter(([,f])=>f.folderId===null);
+  const rootFolders=[...folders.entries()].filter(([,f])=>f.parentId===null);
+
+  // Root folders
+  for(const [fid] of rootFolders){
+    const fo=folders.get(fid); if(!fo) continue;
+    const subtreeFiles=[...files.values()].filter(f=>f.folderId===fid||isDescendantFolder(f.folderId,fid));
+    const div=document.createElement('div');
+    div.className='folder-item';
+    div.dataset.depth=0;
+    div.style.setProperty('--depth',0);
+    div.innerHTML=`
+      <span class="folder-toggle ${fo.collapsed?'':'open'}" id="ftgl_${fid}">▶</span>
+      <span class="folder-icon">📁</span>
+      <span class="folder-name" title="${escH(fo.name)}">${escH(fo.name)}</span>
+      <span class="folder-count">${subtreeFiles.length}</span>
+      <button class="folder-del" onclick="deleteFolder('${fid}',event)" title="Remove folder">✕</button>
+    `;
+    div.addEventListener('click',e=>{if(!e.target.classList.contains('folder-del'))toggleFolder(fid);});
+    list.appendChild(div);
+    const childWrap=document.createElement('div');
+    childWrap.className='folder-children'+(fo.collapsed?' collapsed':'');
+    list.appendChild(childWrap);
+    renderNodeInto(childWrap, fid, 1);
+  }
+
+  // Root-level files
+  for(const [id,f] of rootFiles){
+    if(fileFilter&&!f.name.toLowerCase().includes(fileFilter)) continue;
+    const lines=countLines(f.content);
+    const hasDone=f.compressed!=='';
+    const div=document.createElement('div');
+    div.className='file-item'+(id===activeFileId?' active':'');
+    div.dataset.id=id; div.dataset.depth=0;
+    let tokChip='';
+    if(hasDone){
+      const saved=f.tokenIn-f.tokenOut;
+      const pct=f.tokenIn>0?Math.round((saved/f.tokenIn)*100):0;
+      tokChip=`<span class="fi-tok compressed" title="Before: ${f.tokenIn} · After: ${f.tokenOut} · -${pct}%">${f.tokenOut}tok</span>`;
+    } else {
+      tokChip=`<span class="fi-tok" title="${f.tokenIn} tokens">${f.tokenIn}tok</span>`;
+    }
+    div.innerHTML=`
+      <span class="fi-status ${hasDone?'done':'pending'}"></span>
+      <span class="fi-icon">${getLangIcon(f.lang)}</span>
+      <span class="fi-name" title="${escH(f.name)}">${escH(f.name)}</span>
+      <span class="fi-lines">${lines.toLocaleString()}L</span>
+      ${tokChip}
+      <button class="fi-del" onclick="deleteFile('${id}',event)" title="Remove">✕</button>
+    `;
+    div.addEventListener('click',()=>selectFile(id));
+    list.appendChild(div);
+  }
+}
+
+function selectFile(id){
+  activeFileId=id;
+  const f=files.get(id); if(!f) return;
+  renderFileList();
+  document.getElementById('editorEmpty').style.display='none';
+  const ed=document.getElementById('codeEditor');
+  ed.style.display='block'; ed.value=f.content;
+  document.getElementById('editorFilename').textContent=f.name;
+  const lb=document.getElementById('langBadge');
+  lb.textContent=f.lang.toUpperCase(); lb.className='lang-badge '+getLangBadgeClass(f.lang);
+  updateTokenPill(estTok(f.content));
+  updateBudgetBar();
+  updateEditorMeta();
+  document.getElementById('outFilename').textContent=f.name;
+  if(f.compressed) renderOutput(id);
+  else showOutEmpty();
+}
+
+function deleteFile(id,e){
+  e.stopPropagation();
+  files.delete(id);
+  if(activeFileId===id){ activeFileId=null; showEditorEmpty(); showOutEmpty(); }
+  renderFileList(); updateFileCount(); updateGlobalStats();
+  if(activeFileId===null&&files.size>0) selectFile(files.keys().next().value);
+}
+
+function updateFileCount(){
+  const n=files.size;
+  document.getElementById('fileCountBadge').textContent=n===0?'No files loaded':`${n} file${n===1?'':'s'} loaded`;
+  document.getElementById('compressAllBtn').disabled=n===0;
+}
+
+function showEditorEmpty(){
+  document.getElementById('editorEmpty').style.display='flex';
+  document.getElementById('codeEditor').style.display='none';
+  document.getElementById('editorMetaRow').style.display='none';
+  document.getElementById('editorFilename').textContent='No file selected';
+  document.getElementById('langBadge').textContent='—'; document.getElementById('langBadge').className='lang-badge lang-other';
+  updateTokenPill(0);
+  document.getElementById('budgetBarFill').style.width='0%';
+}
+function showOutEmpty(){
+  document.getElementById('outEmpty').style.display='flex';
+  document.getElementById('outCode').style.display='none';
+  document.getElementById('statsBar').style.display='none';
+  document.getElementById('pseudoBar').classList.remove('show');
+  document.getElementById('ctxDrawer').classList.remove('open');
+  document.getElementById('diffView').classList.remove('show');
+  document.getElementById('promptView').classList.remove('show');
+  document.getElementById('bundleView').classList.remove('show');
+  document.getElementById('historyView').classList.remove('show');
+  setProgress(0);
+}
+
+// ─────────────────────────────────────────
+//  DRAG & DROP
+// ─────────────────────────────────────────
+function onDragOver(e,id){ e.preventDefault(); document.getElementById(id)?.classList.add('drag-over'); }
+function onDragLeave(id){ document.getElementById(id)?.classList.remove('drag-over'); }
+function onDrop(e,id){
+  e.preventDefault();
+  document.getElementById(id)?.classList.remove('drag-over');
+  const dt=e.dataTransfer;
+  if(dt.items&&dt.items.length>0){
+    // Use DataTransferItems for folder support
+    handleDataTransferItems(dt.items);
+  } else {
+    handleFiles(dt.files);
+  }
+}
+document.body.addEventListener('dragover',e=>e.preventDefault());
+document.body.addEventListener('drop',e=>{
+  e.preventDefault();
+  const dt=e.dataTransfer;
+  if(dt.items&&dt.items.length>0) handleDataTransferItems(dt.items);
+  else handleFiles(dt.files);
+});
+
+// ─────────────────────────────────────────
+//  EDITOR LIVE UPDATE
+// ─────────────────────────────────────────
+function onEditorInput(){
+  const f=files.get(activeFileId); if(!f) return;
+  f.content=document.getElementById('codeEditor').value;
+  f.compressed=''; f.ctxMap=[]; f.pseudo=''; f.tokenIn=estTok(f.content);
+  updateTokenPill(f.tokenIn);
+  updateBudgetBar();
+  updateEditorMeta();
+  renderFileList();
+  // Auto-compress with debounce
+  if(document.getElementById('tglAutoCompress').checked){
+    clearTimeout(autoCompressTimer);
+    autoCompressTimer=setTimeout(()=>compressCurrent(),1200);
+  }
+}
+
+// ─────────────────────────────────────────
+//  FIND / REPLACE
+// ─────────────────────────────────────────
+let findMatches=[], findIdx=0;
+function openFindBar(){
+  document.getElementById('findBar').classList.add('show');
+  document.getElementById('findInput').focus();
+}
+function closeFindBar(){
+  document.getElementById('findBar').classList.remove('show');
+  document.getElementById('codeEditor').focus();
+  findMatches=[]; findIdx=0;
+}
+function doFind(){
+  const q=document.getElementById('findInput').value;
+  const ta=document.getElementById('codeEditor');
+  findMatches=[]; findIdx=0;
+  if(!q){ document.getElementById('findInfo').textContent='0/0'; return; }
+  const text=ta.value; let i=0;
+  while((i=text.indexOf(q,i))!==-1){ findMatches.push(i); i+=q.length; }
+  document.getElementById('findInfo').textContent=findMatches.length?`1/${findMatches.length}`:'0/0';
+  if(findMatches.length) highlightFind(0);
+}
+function highlightFind(idx){
+  const ta=document.getElementById('codeEditor');
+  const q=document.getElementById('findInput').value;
+  findIdx=idx;
+  ta.focus(); ta.setSelectionRange(findMatches[idx],findMatches[idx]+q.length);
+  document.getElementById('findInfo').textContent=`${idx+1}/${findMatches.length}`;
+}
+function findNext(){ if(!findMatches.length) return; highlightFind((findIdx+1)%findMatches.length); }
+function findPrev(){ if(!findMatches.length) return; highlightFind((findIdx-1+findMatches.length)%findMatches.length); }
+function doReplace(){
+  const ta=document.getElementById('codeEditor');
+  const q=document.getElementById('findInput').value;
+  const r=document.getElementById('replaceInput').value;
+  if(!q||!findMatches.length) return;
+  const pos=findMatches[findIdx];
+  ta.setSelectionRange(pos,pos+q.length);
+  document.execCommand('insertText',false,r);
+  onEditorInput(); doFind();
+}
+function doReplaceAll(){
+  const ta=document.getElementById('codeEditor');
+  const q=document.getElementById('findInput').value;
+  const r=document.getElementById('replaceInput').value;
+  if(!q) return;
+  const count=(ta.value.match(new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'g'))||[]).length;
+  ta.value=ta.value.split(q).join(r);
+  onEditorInput(); doFind();
+  showToast(`Replaced ${count} occurrence${count!==1?'s':''}`);
+}
+
+// ─────────────────────────────────────────
+//  AI STRATEGY
+// ─────────────────────────────────────────
+function setStrategy(s,el){
+  currentStrategy=s;
+  document.querySelectorAll('.spill').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// ─────────────────────────────────────────
+//  LOCAL COMPRESSION ENGINE
+// ─────────────────────────────────────────
+function stripCommentsJS(code){
+  let r='',i=0;
+  while(i<code.length){
+    if(code[i]==='/'&&code[i+1]==='/'){while(i<code.length&&code[i]!=='\n')i++;}
+    else if(code[i]==='/'&&code[i+1]==='*'){i+=2;while(i<code.length&&!(code[i]==='*'&&code[i+1]==='/'))i++;i+=2;}
+    else if(code[i]==='"'||code[i]==="'"||code[i]==='`'){
+      const q=code[i];r+=code[i++];
+      while(i<code.length){if(code[i]==='\\'){r+=code[i++];r+=code[i++];continue;}r+=code[i];if(code[i++]===q)break;}
+    }else{r+=code[i++];}
+  }
+  return r;
+}
+function stripCommentsHTML(code){ return code.replace(/<!--[\s\S]*?-->/g,'').replace(/\/\*[\s\S]*?\*\//g,''); }
+
+function stripWhitespace(code,lang){
+  if(lang==='html') return code.replace(/\s*\n\s*/g,' ').replace(/\s{2,}/g,' ').replace(/>\s+</g,'><').replace(/;\s+/g,';').replace(/\{\s+/g,'{').replace(/\s+\}/g,'}').replace(/:\s+/g,':').trim();
+  if(lang==='css') return code.replace(/\s*\n\s*/g,'').replace(/\s{2,}/g,' ').replace(/\s*\{\s*/g,'{').replace(/\s*\}\s*/g,'}').replace(/\s*:\s*/g,':').replace(/\s*;\s*/g,';').replace(/\s*,\s*/g,',').replace(/;}/g,'}').trim();
+  return code.replace(/\r?\n\s*/g,'\n').replace(/[ \t]+/g,' ').replace(/\n{2,}/g,'\n').replace(/ *([=+\-*/<>!&|,;:{}()[\]]) */g,'$1').replace(/\n([=+\-*/<>!&|,;{}()[\]])/g,'$1').replace(/([=+\-*/<>!&|,;{}()[\]])\n/g,'$1').trim();
+}
+
+const RESERVED=new Set(['break','case','catch','class','const','continue','debugger','default','delete','do','else','export','extends','false','finally','for','function','if','import','in','instanceof','let','new','null','return','static','super','switch','this','throw','true','try','typeof','var','void','while','with','yield','async','await','of','from','get','set','arguments','undefined','NaN','Infinity','console','document','window','process','module','require','exports','Promise','Array','Object','String','Number','Boolean','Error','Math','JSON','Date','Map','Set','Symbol','Proxy','parseInt','parseFloat','isNaN','isFinite','setTimeout','clearTimeout','setInterval','clearInterval','fetch','XMLHttpRequest','addEventListener','querySelector','getElementById','length','push','pop','shift','unshift','map','filter','reduce','forEach','find','some','every','includes','indexOf','slice','splice','join','split','toString','valueOf','hasOwnProperty','prototype','constructor','keys','values','entries','assign','create','freeze','log','warn','error','info','then','catch','finally','resolve','reject','all','race','any','next','done','value','type','name','message','stack','code','status','data','body','headers','url','method','params','options','config','response','request','callback','event','target','src','href','id','className','style','innerHTML','textContent','append','remove','setAttribute','getAttribute','children','parentNode','call','apply','bind','sort','reverse','concat','flat','fill','replaceAll','replace','match','test','exec','search','trim','startsWith','endsWith','padStart','padEnd','repeat','charAt','stringify','parse','max','min','abs','ceil','floor','round','random','pow','sqrt','PI','E','sin','cos','tan','now','getTime','size','has','add','delete','clear','emit','on','off','once']);
+
+function minifyIds(code){
+  const cands={};
+  const re=/\b([a-zA-Z_][a-zA-Z0-9_$]*)\b/g; let m;
+  while((m=re.exec(code))!==null){ const id=m[1]; if(!RESERVED.has(id)&&id.length>4) cands[id]=(cands[id]||0)+1; }
+  const sorted=Object.entries(cands).filter(([k,v])=>k.length>4).sort((a,b)=>(b[1]*b[0].length)-(a[1]*a[0].length));
+  const cs='abcdefghijklmnopqrstuvwxyz';
+  const gen=i=>i<26?'_'+cs[i]:'_'+cs[Math.floor(i/26)-1]+cs[i%26];
+  const nameMap={}; const ctxMap=[];
+  sorted.slice(0,80).forEach(([id],i)=>{ nameMap[id]=gen(i); ctxMap.push({from:id,to:gen(i),count:cands[id]}); });
+  const result=code.replace(/\b([a-zA-Z_][a-zA-Z0-9_$]*)\b/g,w=>nameMap[w]||w);
+  return {code:result,ctxMap};
+}
+
+function localCompress(content,lang){
+  const doWS=document.getElementById('tglWS').checked;
+  const doCmt=document.getElementById('tglCmt').checked;
+  const doRename=document.getElementById('tglRename').checked;
+  let code=content;
+  if(doCmt) code=lang==='html'?stripCommentsHTML(code):stripCommentsJS(code);
+  if(doWS) code=stripWhitespace(code,lang);
+  let ctxMap=[];
+  if(doRename&&lang!=='html'&&lang!=='css'){ const r=minifyIds(code); code=r.code; ctxMap=r.ctxMap; }
+  return {code,ctxMap};
+}
+
+// ─────────────────────────────────────────
+//  AI COMPRESSION
+// ─────────────────────────────────────────
+async function aiCompressCode(code,strategy,lang,fileName){
+  const P={
+    pseudo:`You are a code compression expert. Given this ${lang} code from file "${fileName}", produce:
+1. A maximally compressed but valid version
+2. A 2-sentence summary of what it does
+
+Respond ONLY as JSON (no fences): {"compressed":"...","summary":"..."}
+
+CODE:
+${code.slice(0,5000)}`,
+
+    semantic:`You are an expert at compressing ${lang} code for AI consumption. Rewrite it maximally compressed:
+- Collapse multi-line logic into single expressions
+- Use shorthand/ternary/destructuring aggressively
+- Remove dead code, redundant variables, unnecessary wrappers
+- Inline single-call functions
+- Keep 100% logical equivalence
+
+Respond ONLY as JSON (no fences): {"compressed":"...","summary":"...one sentence what this does..."}
+
+CODE:
+${code.slice(0,5000)}`,
+
+    deep:`You are the world's most aggressive token optimizer for ${lang}. File: "${fileName}".
+Apply ALL of: remove whitespace, rename identifiers to 1-2 chars, collapse all logic, inline vars, chain methods, implicit returns, ternaries everywhere, bitwise where shorter.
+Also output renamed identifier map and one-line summary.
+
+Respond ONLY as JSON (no fences): {"compressed":"...","contextMap":[{"from":"...","to":"..."}],"summary":"..."}
+
+CODE:
+${code.slice(0,5500)}`
+  };
+
+  const res=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:4000,messages:[{role:'user',content:P[strategy]}]})
+  });
+  const data=await res.json();
+  const text=data.content.map(b=>b.text||'').join('');
+  const clean=text.replace(/```json|```/g,'').trim();
+  try{ return JSON.parse(clean); }
+  catch(e){ const m=clean.match(/\{[\s\S]*\}/); if(m) return JSON.parse(m[0]); throw new Error('AI parse failed'); }
+}
+
+// ─────────────────────────────────────────
+//  COMPRESS SINGLE
+// ─────────────────────────────────────────
+async function compressCurrent(){
+  if(!activeFileId){ showToast('No file selected','err'); return; }
+  await compressFileById(activeFileId,true);
+}
+
+async function compressFileById(id,showUI=false){
+  const f=files.get(id); if(!f) return;
+  // Mark as processing
+  const statusEl=document.querySelector(`.file-item[data-id="${id}"] .fi-status`);
+  if(statusEl) statusEl.className='fi-status processing';
+  setProgress(20);
+  const {code:localCode,ctxMap:localCtx}=localCompress(f.content,f.lang);
+  setProgress(50);
+  let finalCode=localCode,ctxMap=localCtx,pseudo='';
+  if(currentStrategy!=='none'){
+    if(showUI) document.getElementById('aiOverlay').classList.add('show');
+    setAIProg(20,'Analyzing code structure...');
+    try{
+      const r=await aiCompressCode(localCode,currentStrategy,f.lang,f.name);
+      finalCode=r.compressed||localCode;
+      pseudo=r.summary||'';
+      const aiCtx=(r.contextMap||[]).map(i=>({from:i.from,to:i.to,count:1,source:'AI'}));
+      ctxMap=[...localCtx,...aiCtx];
+      setAIProg(90,'Finalizing...');
+    }catch(e){ showToast('AI error: '+e.message,'err'); }
+    if(showUI) document.getElementById('aiOverlay').classList.remove('show');
+  }
+  f.compressed=finalCode; f.ctxMap=ctxMap; f.pseudo=pseudo;
+  f.tokenIn=estTok(f.content); f.tokenOut=estTok(finalCode);
+
+  // Push to history
+  compressionHistory.unshift({
+    ts:Date.now(), fileName:f.name,
+    tokenIn:f.tokenIn, tokenOut:f.tokenOut,
+    reduction:f.tokenIn>0?Math.round(((f.tokenIn-f.tokenOut)/f.tokenIn)*100):0,
+    compressed:finalCode, ctxMap:[...ctxMap],
+    strategy:currentStrategy
+  });
+  if(compressionHistory.length>50) compressionHistory.pop();
+
+  setProgress(100);
+  setTimeout(()=>setProgress(0),700);
+  renderFileList();
+  updateGlobalStats();
+  if(id===activeFileId) renderOutput(id);
+  return f;
+}
+
+// ─────────────────────────────────────────
+//  COMPRESS ALL
+// ─────────────────────────────────────────
+async function compressAll(){
+  if(!files.size){ showToast('No files loaded','err'); return; }
+  const ids=[...files.keys()];
+  const btn=document.getElementById('compressAllBtn');
+  btn.disabled=true; btn.innerHTML='<span>⚙️</span> Compressing...';
+  const overlay=document.getElementById('aiOverlay');
+  const fileListEl=document.getElementById('aiFileList');
+  overlay.classList.add('show');
+  fileListEl.innerHTML=ids.map(id=>`<div class="ai-file-item" id="aif_${id}">○ ${escH(files.get(id).name)}</div>`).join('');
+  for(let i=0;i<ids.length;i++){
+    const id=ids[i];
+    const f=files.get(id);
+    setAIProg(Math.round((i/ids.length)*100),`Processing ${i+1}/${ids.length}: ${f.name}`);
+    const el=document.getElementById('aif_'+id);
+    if(el){ el.className='ai-file-item active'; el.textContent='⟳ '+f.name; }
+    await compressFileById(id,false);
+    if(el){ el.className='ai-file-item done'; el.textContent='✓ '+f.name; }
+  }
+  setAIProg(100,'Done!');
+  setTimeout(()=>overlay.classList.remove('show'),600);
+  btn.disabled=false; btn.innerHTML='<span>⚡</span> Compress All';
+  buildBundleView();
+  switchTabByName('bundle');
+  showToast(`Compressed ${ids.length} files successfully`);
+}
+
+// ─────────────────────────────────────────
+//  RENDER OUTPUT
+// ─────────────────────────────────────────
+function renderOutput(id){
+  const f=files.get(id); if(!f||!f.compressed) return;
+  document.getElementById('outEmpty').style.display='none';
+  const oc=document.getElementById('outCode');
+  oc.value=f.compressed;
+  document.getElementById('statsBar').style.display='block';
+  const saved=f.tokenIn-f.tokenOut;
+  const pct=f.tokenIn>0?Math.round((saved/f.tokenIn)*100):0;
+  document.getElementById('sIn').textContent=f.tokenIn.toLocaleString();
+  document.getElementById('sOut').textContent=f.tokenOut.toLocaleString();
+  document.getElementById('sPct').textContent=pct+'%';
+  document.getElementById('savingsBadge').textContent='-'+saved.toLocaleString()+' tok';
+  const gw=Math.min(100,Math.round((f.tokenOut/f.tokenIn)*100));
+  const gf=document.getElementById('gaugeFill');
+  gf.style.width=gw+'%'; gf.className='gauge-fill '+(gw<40?'low':gw<70?'mid':'high');
+  document.getElementById('gaugeLbl').textContent=`${gw}% of original`;
+  if(f.pseudo){ document.getElementById('pseudoText').textContent=f.pseudo; document.getElementById('pseudoBar').classList.add('show'); }
+  else document.getElementById('pseudoBar').classList.remove('show');
+  renderCtxMap(f.ctxMap);
+  buildDiff(f.content,f.compressed);
+  buildPromptView(f);
+  buildBundleView();
+  // Re-apply the currently active tab so the correct view is shown
+  const activeTab=document.querySelector('.out-tab.active')?.dataset?.tab||'compressed';
+  switchTabByName(activeTab);
+}
+
+function renderCtxMap(ctxMap){
+  const body=document.getElementById('ctxBody');
+  const badge=document.getElementById('ctxBadge');
+  body.innerHTML=''; badge.textContent=ctxMap.length;
+  if(!ctxMap.length){ document.getElementById('ctxDrawer').classList.remove('open'); return; }
+  ctxMap.forEach(i=>{
+    const d=document.createElement('div'); d.className='ctx-item';
+    d.innerHTML=`<span class="ctx-from">${escH(i.from)}</span><span class="ctx-arr">→</span><span class="ctx-to">${escH(i.to)}</span>${i.source==='AI'?'<span class="ctx-tag">AI</span>':''}`;
+    body.appendChild(d);
+  });
+  document.getElementById('ctxDrawer').classList.add('open');
+  document.getElementById('ctxChev').textContent='▼';
+}
+
+function buildDiff(orig,comp){
+  const el=document.getElementById('diffView'); el.innerHTML='';
+  if(!orig||!comp) return;
+  const oLines=orig.split('\n').slice(0,60);
+  const cLines=comp.split('\n').slice(0,60);
+  const beforeLbl=document.createElement('div');
+  beforeLbl.className='diff-section-label before';
+  beforeLbl.textContent='− Before';
+  el.appendChild(beforeLbl);
+  for(let i=0;i<Math.min(oLines.length,30);i++){
+    const d=document.createElement('div'); d.className='diff-line rem';
+    d.textContent='- '+(oLines[i]||''); el.appendChild(d);
+  }
+  const afterLbl=document.createElement('div');
+  afterLbl.className='diff-section-label after';
+  afterLbl.style.marginTop='12px';
+  afterLbl.textContent='+ After';
+  el.appendChild(afterLbl);
+  for(let i=0;i<Math.min(cLines.length,30);i++){
+    const d=document.createElement('div'); d.className='diff-line add';
+    d.textContent='+ '+(cLines[i]||''); el.appendChild(d);
+  }
+  if(oLines.length>30||cLines.length>30){
+    const d=document.createElement('div'); d.className='diff-line ctx';
+    d.style.marginTop='8px';
+    d.textContent=`… ${orig.split('\n').length} → ${comp.split('\n').length} lines total`; el.appendChild(d);
+  }
+}
+
+function buildPromptView(f){
+  if(!f) f=files.get(activeFileId); if(!f) return;
+  const prefix=document.getElementById('prefixInput').value;
+  const mapStr=f.ctxMap.length>0?'\n[CONTEXT MAP]\n'+f.ctxMap.map(i=>`${i.to}=${i.from}`).join(', '):'';
+  const pseudoStr=f.pseudo?'\n[LOGIC SUMMARY]\n'+f.pseudo:'';
+  document.getElementById('promptView').textContent=`${prefix}${pseudoStr}${mapStr}\n\n[CODE: ${f.name}]\n${f.compressed}`;
+}
+
+function buildBundleView(){
+  const el=document.getElementById('bundleView'); el.innerHTML='';
+  const done=[...files.values()].filter(f=>f.compressed);
+  if(!done.length){ el.innerHTML='<div style="color:var(--muted);font-size:11px">No files compressed yet</div>'; return; }
+  const prefix=document.getElementById('prefixInput').value;
+  const header=document.createElement('div');
+  header.style.cssText='margin-bottom:12px;font-size:11px;color:var(--muted);border-bottom:1px solid var(--border);padding-bottom:8px';
+  const totalIn=done.reduce((s,f)=>s+f.tokenIn,0);
+  const totalOut=done.reduce((s,f)=>s+f.tokenOut,0);
+  header.innerHTML=`${prefix}<br><br><span style="color:var(--accent2)">[${done.length} FILES BUNDLE — ${totalIn.toLocaleString()} → ${totalOut.toLocaleString()} tokens, ${Math.round((1-totalOut/totalIn)*100)}% reduction]</span>`;
+  el.appendChild(header);
+  done.forEach(f=>{
+    const block=document.createElement('div'); block.className='bundle-file-block';
+    const allCtx=[...f.ctxMap].map(i=>`${i.to}=${i.from}`).join(', ');
+    block.innerHTML=`<div class="bundle-file-hdr"><span>${escH(f.name)}</span><span>${f.tokenIn}→${f.tokenOut} tok</span></div>${allCtx?`<div style="font-size:9px;color:var(--muted);margin-bottom:3px;word-break:break-all">[MAP] ${escH(allCtx)}</div>`:''}${f.pseudo?`<div style="font-size:9px;color:var(--text2);font-style:italic;margin-bottom:3px">${escH(f.pseudo)}</div>`:''}<div class="bundle-file-code">${escH(f.compressed)}</div>`;
+    el.appendChild(block);
+  });
+}
+
+// ─────────────────────────────────────────
+//  HISTORY VIEW
+// ─────────────────────────────────────────
+function buildHistoryView(){
+  const el=document.getElementById('historyView'); el.innerHTML='';
+  if(!compressionHistory.length){
+    el.innerHTML='<div style="color:var(--muted);font-size:11px;text-align:center;padding-top:24px">No compressions yet this session</div>';
+    return;
+  }
+  compressionHistory.forEach((h,idx)=>{
+    const entry=document.createElement('div'); entry.className='hist-entry';
+    entry.innerHTML=`
+      <div class="hist-hdr" onclick="toggleHistEntry(${idx})">
+        <span style="font-size:10px;font-family:var(--mono);color:var(--text2)">${escH(h.fileName)}</span>
+        <span class="hist-badge">-${h.reduction}%</span>
+        <span style="font-size:9px;color:var(--muted)">${h.tokenIn}→${h.tokenOut} tok</span>
+        <span class="hist-ts">${fmtTime(h.ts)}</span>
+        <button class="hist-restore-btn" onclick="restoreFromHistory(${idx},event)" title="Restore this output">Restore</button>
+      </div>
+      <div class="hist-body" id="histBody_${idx}">${escH(h.compressed.slice(0,400))}${h.compressed.length>400?'\n…':''}</div>
+    `;
+    el.appendChild(entry);
+  });
+}
+
+function toggleHistEntry(idx){
+  const b=document.getElementById('histBody_'+idx);
+  b.classList.toggle('open');
+}
+
+function restoreFromHistory(idx,e){
+  e.stopPropagation();
+  const h=compressionHistory[idx];
+  const f=files.get(activeFileId);
+  if(!f){ showToast('No file selected','err'); return; }
+  f.compressed=h.compressed; f.ctxMap=h.ctxMap;
+  f.tokenOut=h.tokenOut;
+  renderOutput(activeFileId);
+  switchTabByName('compressed');
+  showToast('Restored from history');
+}
+
+function rebuildPrompt(){
+  const f=files.get(activeFileId); if(f&&f.compressed) buildPromptView(f);
+  buildBundleView();
+  switchTabByName('prompt');
+}
+
+// ─────────────────────────────────────────
+//  TABS
+// ─────────────────────────────────────────
+function switchTab(name,el){ switchTabByName(name); }
+function switchTabByName(name){
+  document.querySelectorAll('.out-tab').forEach(t=>{ t.classList.toggle('active',t.dataset.tab===name); });
+  const oc=document.getElementById('outCode');
+  const dv=document.getElementById('diffView');
+  const pv=document.getElementById('promptView');
+  const bv=document.getElementById('bundleView');
+  const hv=document.getElementById('historyView');
+  // Hide everything first
+  oc.style.display='none';
+  [dv,pv,bv,hv].forEach(v=>v.classList.remove('show'));
+  const f=files.get(activeFileId);
+  const hasOut=f&&f.compressed;
+  // Show the right view for the active tab
+  if(name==='compressed'){
+    if(hasOut){
+      document.getElementById('outEmpty').style.display='none';
+      oc.style.display='block';
+    } else {
+      document.getElementById('outEmpty').style.display='flex';
+    }
+  } else if(name==='diff'){
+    document.getElementById('outEmpty').style.display='none';
+    if(hasOut) buildDiff(f.content,f.compressed);
+    dv.classList.add('show');
+  } else if(name==='prompt'){
+    document.getElementById('outEmpty').style.display='none';
+    if(hasOut) buildPromptView(f);
+    pv.classList.add('show');
+  } else if(name==='bundle'){
+    document.getElementById('outEmpty').style.display='none';
+    bv.classList.add('show');
+    buildBundleView();
+  } else if(name==='history'){
+    document.getElementById('outEmpty').style.display='none';
+    hv.classList.add('show');
+    buildHistoryView();
+  }
+}
+
+function toggleCtx(){
+  const d=document.getElementById('ctxDrawer'); d.classList.toggle('open');
+  document.getElementById('ctxChev').textContent=d.classList.contains('open')?'▼':'▲';
+}
+
+// ─────────────────────────────────────────
+//  COPY
+// ─────────────────────────────────────────
+async function copyOutput(){
+  const activeTab=document.querySelector('.out-tab.active')?.dataset?.tab||'compressed';
+  let text='';
+  if(activeTab==='compressed'){ const f=files.get(activeFileId); text=f?.compressed||''; }
+  else if(activeTab==='prompt'){ text=document.getElementById('promptView').textContent; }
+  else if(activeTab==='bundle'){ text=getBundleText(); }
+  else if(activeTab==='diff'){ text=document.getElementById('diffView').textContent; }
+  if(!text){ showToast('Nothing to copy','err'); return; }
+  await navigator.clipboard.writeText(text);
+  const btn=document.getElementById('copyBtn'); btn.textContent='✓ Copied!'; btn.classList.add('ok');
+  setTimeout(()=>{ btn.textContent='Copy'; btn.classList.remove('ok'); },2000);
+  showToast('Copied to clipboard');
+}
+
+function getBundleText(){
+  const done=[...files.values()].filter(f=>f.compressed);
+  const prefix=document.getElementById('prefixInput').value;
+  const totalIn=done.reduce((s,f)=>s+f.tokenIn,0);
+  const totalOut=done.reduce((s,f)=>s+f.tokenOut,0);
+  let out=`${prefix}\n\n[${done.length} FILES — ${totalIn} → ${totalOut} tokens, ${Math.round((1-totalOut/totalIn)*100)}% reduction]\n\n`;
+  done.forEach(f=>{
+    const map=f.ctxMap.map(i=>`${i.to}=${i.from}`).join(', ');
+    out+=`// FILE: ${f.name}\n`;
+    if(map) out+=`// MAP: ${map}\n`;
+    if(f.pseudo) out+=`// SUMMARY: ${f.pseudo}\n`;
+    out+=f.compressed+'\n\n';
+  });
+  return out;
+}
+
+// ─────────────────────────────────────────
+//  EXPORT BUNDLE
+// ─────────────────────────────────────────
+async function exportBundle(){
+  const done=[...files.entries()].filter(([,f])=>f.compressed);
+  if(!done.length){ showToast('No compressed files to export','err'); return; }
+  const zip=new JSZip();
+  done.forEach(([,f])=>zip.file(f.name,f.compressed));
+  zip.file('_tokencrush_bundle.txt',getBundleText());
+  const blob=await zip.generateAsync({type:'blob'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download='tokencrush_bundle.zip';
+  a.click(); URL.revokeObjectURL(url);
+  showToast(`Exported ${done.length} compressed files`);
+}
+
+// ─────────────────────────────────────────
+//  KEYBOARD SHORTCUTS
+// ─────────────────────────────────────────
+document.addEventListener('keydown',e=>{
+  const isMac=navigator.platform.toUpperCase().includes('MAC');
+  const mod=isMac?e.metaKey:e.ctrlKey;
+  if(mod&&e.key==='Enter'){ e.preventDefault(); compressCurrent(); }
+  if(mod&&e.key==='f'){ e.preventDefault(); openFindBar(); }
+  if(mod&&e.key==='s'){ e.preventDefault(); compressCurrent(); showToast('Saved & compressed'); }
+  if(e.key==='Escape'){ closeFindBar(); }
+});
+
+// ─────────────────────────────────────────
+//  COMPRESS BUTTON (injected)
+// ─────────────────────────────────────────
+(function(){
+  const hdr=document.querySelector('.editor-header');
+  const btn=document.createElement('button');
+  btn.className='btn btn-accent'; btn.textContent='⚡ Compress'; btn.style.flexShrink='0';
+  btn.onclick=compressCurrent;
+  hdr.appendChild(btn);
+})();
+
+// ─────────────────────────────────────────
+//  RESIZABLE PANELS
+// ─────────────────────────────────────────
+(function(){
+  function makeResizable(handleId,leftEl,rightEl,minLeft,minRight){
+    const handle=document.getElementById(handleId);
+    let dragging=false,startX=0,startLeft=0,startRight=0;
+    handle.addEventListener('mousedown',e=>{
+      dragging=true; startX=e.clientX;
+      startLeft=leftEl.offsetWidth; startRight=rightEl.offsetWidth;
+      handle.classList.add('dragging');
+      document.body.style.userSelect='none'; document.body.style.cursor='col-resize';
+    });
+    document.addEventListener('mousemove',e=>{
+      if(!dragging) return;
+      const dx=e.clientX-startX;
+      const nl=Math.max(minLeft,startLeft+dx);
+      const nr=Math.max(minRight,startRight-dx);
+      leftEl.style.width=nl+'px'; leftEl.style.flex='none';
+      rightEl.style.width=nr+'px'; rightEl.style.flex='none';
+    });
+    document.addEventListener('mouseup',()=>{
+      if(!dragging) return;
+      dragging=false; handle.classList.remove('dragging');
+      document.body.style.userSelect=''; document.body.style.cursor='';
+    });
+    // Double-click to reset
+    handle.addEventListener('dblclick',()=>{
+      leftEl.style.width=''; leftEl.style.flex='';
+      rightEl.style.width=''; rightEl.style.flex='';
+    });
+  }
+  const sidebar=document.querySelector('.sidebar');
+  const editorPanel=document.getElementById('editorPanel');
+  const outputPanel=document.getElementById('outputPanel');
+  makeResizable('rh1',sidebar,editorPanel,140,200);
+  makeResizable('rh2',editorPanel,outputPanel,200,200);
+})();
+
+// ─────────────────────────────────────────
+//  EXAMPLE
+// ─────────────────────────────────────────
+function loadExample(){
+  const exFiles=[
+    {name:'auth.service.ts',content:`// Authentication Service - handles JWT tokens and user sessions
+import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
+import { UserRepository } from './repositories/userRepository';
+import { TokenBlacklist } from './utils/tokenBlacklist';
+import { Logger } from './utils/logger';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-key';
+const TOKEN_EXPIRY = process.env.TOKEN_EXPIRY || '24h';
+const SALT_ROUNDS = 12;
+
+export class AuthenticationService {
+  private userRepository: UserRepository;
+  private tokenBlacklist: TokenBlacklist;
+  private logger: Logger;
+
+  constructor(userRepository: UserRepository, tokenBlacklist: TokenBlacklist, logger: Logger) {
+    this.userRepository = userRepository;
+    this.tokenBlacklist = tokenBlacklist;
+    this.logger = logger;
+  }
+
+  async authenticateUser(emailAddress: string, plainTextPassword: string): Promise<AuthResult> {
+    try {
+      const foundUser = await this.userRepository.findByEmail(emailAddress);
+      if (!foundUser) {
+        this.logger.warn('Login failed: user not found', { email: emailAddress });
+        throw new Error('Invalid credentials');
+      }
+      const passwordIsValid = await bcrypt.compare(plainTextPassword, foundUser.passwordHash);
+      if (!passwordIsValid) {
+        this.logger.warn('Login failed: wrong password', { userId: foundUser.id });
+        throw new Error('Invalid credentials');
+      }
+      const accessToken = jwt.sign({ userId: foundUser.id, role: foundUser.role }, JWT_SECRET, { expiresIn: TOKEN_EXPIRY });
+      return { accessToken, user: { id: foundUser.id, email: foundUser.email, role: foundUser.role } };
+    } catch (error) {
+      if (error.message !== 'Invalid credentials') this.logger.error('Auth error', { error });
+      throw error;
+    }
+  }
+}`},
+    {name:'api.utils.js',content:`// Utility functions for API request handling
+const DEFAULT_TIMEOUT = 30000;
+const DEFAULT_RETRIES = 3;
+const RATE_LIMIT_DELAY = 1000;
+
+async function makeApiRequest(endpoint, options = {}, maxRetries = DEFAULT_RETRIES) {
+  const requestOptions = {
+    method: options.method || 'GET',
+    headers: { 'Content-Type': 'application/json', ...options.headers },
+    body: options.body ? JSON.stringify(options.body) : undefined,
+    signal: AbortSignal.timeout(options.timeout || DEFAULT_TIMEOUT)
+  };
+  let lastError;
+  for (let attemptNumber = 0; attemptNumber < maxRetries; attemptNumber++) {
+    try {
+      const apiResponse = await fetch(endpoint, requestOptions);
+      if (!apiResponse.ok) {
+        if (apiResponse.status === 429) {
+          const retryAfter = apiResponse.headers.get('Retry-After');
+          const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : RATE_LIMIT_DELAY * Math.pow(2, attemptNumber);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+          continue;
+        }
+        throw new Error(\`HTTP \${apiResponse.status}: \${apiResponse.statusText}\`);
+      }
+      const responseData = await apiResponse.json();
+      return { success: true, data: responseData.data || responseData, timestamp: new Date().toISOString() };
+    } catch (requestError) {
+      lastError = requestError;
+      if (attemptNumber < maxRetries - 1) await new Promise(resolve => setTimeout(resolve, RATE_LIMIT_DELAY * (attemptNumber + 1)));
+    }
+  }
+  throw lastError;
+}
+
+export { makeApiRequest };`}
+  ];
+  clearAll();
+  exFiles.forEach(f=>addFile(f.name,f.content));
+  showToast('Example files loaded — try Compress All!');
+}
+
+function clearAll(){
+  files.clear(); activeFileId=null;
+  renderFileList(); showEditorEmpty(); showOutEmpty(); updateFileCount(); updateGlobalStats();
+}
+
+// ─────────────────────────────────────────
+//  INIT
+// ─────────────────────────────────────────
+applyTheme(document.documentElement.getAttribute('data-theme')||'dark');
+updateFileCount();
+</script>
+</body>
+</html>
