@@ -3,355 +3,193 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
-<title>TokenCrush — Mobile Game</title>
+<title>Games — TokenCrush</title>
+<meta name="theme-color" content="#0b0b0e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:#141415;overflow:hidden;font-family:'Courier New',monospace;font-size:13px;-webkit-user-select:none;user-select:none;height:100vh;margin:0}
-a{color:#78f148;text-decoration:none}
+:root{
+  --bg:#0b0b0e;--surface:#141418;--surface2:#1e1e26;--surface3:#28282f;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);
+  --text:#ededf0;--text2:#a0a0aa;--muted:#606068;
+  --accent:#7c6dfa;--accent2:#a393ff;--green:#3ecf8e;--amber:#f5a623;
+  --radius:12px;--radius-lg:16px;
+}
+:root[data-theme="light"]{
+  --bg:#f4f4f7;--surface:#ffffff;--surface2:#f0f0f3;--surface3:#e6e6ec;
+  --border:rgba(20,20,30,0.08);--border2:rgba(20,20,30,0.14);
+  --text:#14141a;--text2:#55555f;--muted:#84848d;
+  --accent:#5b3fe0;--accent2:#4c2fd1;--green:#0c8a57;--amber:#9c6500;
+}
+body{
+  background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  min-height:100vh;min-height:100dvh;
+  -webkit-tap-highlight-color:transparent;
+  -webkit-user-select:none;user-select:none;
+  overflow-x:hidden;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
 
-.game{width:144px;position:absolute;left:calc(50% - 72px);top:calc(50% - 140px)}
-.game input{display:none}
+/* Header */
+.header{
+  padding:16px 16px 0;display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:10;background:var(--bg);
+}
+.header-left{display:flex;align-items:center;gap:10px}
+.logo{font-size:20px;font-weight:700;color:var(--text);text-decoration:none;letter-spacing:-0.5px}
+.logo-icon{font-size:24px}
+.header-right{display:flex;align-items:center;gap:8px}
+.icon-btn{
+  width:40px;height:40px;border-radius:10px;border:1px solid var(--border2);
+  background:var(--surface2);color:var(--text2);font-size:16px;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+  transition:all .15s;
+}
+.icon-btn:hover{background:var(--surface3);color:var(--text)}
+.icon-btn:active{transform:scale(0.95)}
 
-/* Loader */
-.game_loader{position:fixed;z-index:15;background:#141415;left:0;top:0;width:100%;height:100%;pointer-events:none;opacity:1;animation:fadeOut 1.5s 7s forwards}
-.game_loader__inner{position:absolute;left:0;right:0;margin:auto;top:50%;transform:translateY(-50%);font-size:10px;width:180px;text-align:center}
-.game_loader__inner h1{font-weight:normal;font-size:11px}
-.game_loader__inner .logo{width:180px;height:60px;margin:auto;margin-bottom:10px;transform:scale(0);opacity:0;animation:logo 2s forwards}
-.game_loader__inner .logo img{width:100%}
-.game_loader__inner span{color:rebeccapurple;display:block;opacity:0;margin-top:8px;animation:fadeIn 1.5s 3s forwards}
-.game_loader__inner .bar{background:#3c3c3e;position:relative;height:2px;margin-top:30px;opacity:0;animation:fadeIn 1.5s 2.5s forwards}
-.game_loader__inner .bar_inner{width:0;height:100%;background:white;position:absolute;top:0;animation:bar 3s 3s forwards}
-.game_loader__inner .subtitle{color:#f49112;margin:-18px 0px 40px 0;opacity:0;animation:fadeIn 1.5s 1.5s forwards}
+/* Hero */
+.hero{
+  padding:24px 16px 16px;text-align:center;
+}
+.hero h1{font-size:22px;font-weight:700;margin-bottom:6px;letter-spacing:-0.3px}
+.hero p{font-size:13px;color:var(--text2);line-height:1.5}
 
-/* Intro */
-.game_intro{position:absolute;top:8px;left:0;z-index:14;width:144px}
-.game_intro .dialogue{position:absolute;top:160px;opacity:0;width:140px;left:10px;padding:10px;border-radius:4px;font-size:11px;text-align:center;background:white;color:#141415}
-.game_intro .dialogue.end{width:110px;left:0;text-align:center;right:0;top:100px;margin:auto}
-.game_intro .overlay{position:fixed;top:0 !important;width:140%;left:0;opacity:1;height:260%;background:#141415;z-index:-1;pointer-events:all;transition:all 4s .7s !important}
-.game_intro input:checked~.dialogue{opacity:1;top:100px;transition:all 0.5s 0.8s;pointer-events:all}
-.game_intro input:checked~.dialogue label{opacity:1;bottom:-10px}
-.game_intro input#intro-1:checked~.dialogue{opacity:0;animation:dialogueIn .5s 9s forwards}
-.game_intro input#intro-5:checked~.dialogue{opacity:0;animation:showResponse 2s 2s forwards}
-.game_intro input#intro-5:checked~.dialogue+.dialogue{opacity:0;pointer-events:none}
-.dialogue label{border-radius:5px;position:absolute;right:-6px;bottom:-20px;z-index:1;opacity:0;cursor:pointer;transition:all 0.4s 1s}
-.dialogue label img{transform:scale(2);image-rendering:pixelated}
-.dialogue label:hover{right:-13px;background:#66bf60}
+/* Game grid */
+.games{padding:8px 16px 24px;display:flex;flex-direction:column;gap:12px}
 
-/* Padlock */
-.padlock{display:none;position:absolute;width:200px;top:50px;left:-28px;height:200px;background:#301f41b8;z-index:4;border-radius:200px;border:3px solid #ffb128}
-.padlock img{position:absolute;left:55px;top:25px;transform:scale(0.7)}
-.check{display:none;width:60px;cursor:pointer;height:60px;position:absolute;z-index:6;top:220px;left:20px;text-align:center;line-height:57px;background:wheat;color:#615133;border-radius:100px;border:3px solid #ffb128;transition:all 0.3s;font-size:10px}
-.check:hover{background:#ffb128;color:white}
+.game-card{
+  display:flex;align-items:center;gap:14px;
+  padding:16px;background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius-lg);cursor:pointer;
+  transition:all .15s;text-decoration:none;color:var(--text);
+  -webkit-tap-highlight-color:transparent;
+  min-height:72px;
+}
+.game-card:hover{border-color:var(--border2);background:var(--surface2)}
+.game-card:active{transform:scale(0.98);border-color:var(--accent)}
 
-input#interactiveObject--lock:not(:checked)~span{display:none}
-input#interactiveObject--lock:checked~.padlock{display:block}
-input#interactiveObject--lock:checked~input{display:block}
-input#interactiveObject--lock:checked~label.check{display:block}
+.game-icon{
+  width:52px;height:52px;border-radius:var(--radius);
+  display:flex;align-items:center;justify-content:center;
+  font-size:26px;flex-shrink:0;
+}
+.game-icon.dungeon{background:linear-gradient(135deg,#2d1b4e,#1a1040)}
+.game-icon.coming{background:var(--surface3);opacity:0.5}
 
-input[id*="padlock"]{display:none;position:absolute;left:0;right:0;top:100px;margin:auto;z-index:3}
-input[id*="padlock"]+span{display:none;position:fixed;color:#444;top:50%;font-size:10px}
-input[id*="padlock"][id*="padlock1"]{left:30px}
-input[id*="padlock"][id*="padlock1"]+span{left:15px}
-input[id*="padlock"][id*="padlock2"]{left:65px}
-input[id*="padlock"][id*="padlock2"]+span{left:55px}
-input[id*="padlock"][id*="padlock3"]{left:100px}
-input[id*="padlock"][id*="padlock3"]+span{left:95px}
+.game-info{flex:1;min-width:0}
+.game-title{font-size:15px;font-weight:600;margin-bottom:2px}
+.game-desc{font-size:12px;color:var(--text2);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.game-badge{
+  font-size:9px;padding:3px 7px;border-radius:6px;font-weight:600;
+  letter-spacing:0.5px;text-transform:uppercase;flex-shrink:0;
+}
+.game-badge.play{background:rgba(62,207,142,.15);color:var(--green);border:1px solid rgba(62,207,142,.25)}
+.game-badge.soon{background:var(--surface3);color:var(--muted);border:1px solid var(--border2)}
 
-/* Character */
-.game_character{width:48px;height:48px;background:url('https://s3-us-west-2.amazonaws.com/s.cdpn.io/217233/corridorMainCharacter.gif');position:absolute;top:100px;left:-16px;z-index:1;background-position:0 0;transition:all 1s linear;pointer-events:none}
+.game-card.coming-soon{pointer-events:none}
 
-/* Viewport */
-.viewport{position:relative;z-index:0;transition:all 1s linear}
-.viewport .level{position:absolute;left:0;z-index:1;transform:scale(3);transform-origin:0 0;image-rendering:pixelated}
+/* Desktop link */
+.desktop-link{
+  display:block;margin:16px;padding:14px;text-align:center;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);color:var(--accent);font-size:13px;
+  font-weight:500;text-decoration:none;transition:all .15s;
+}
+.desktop-link:hover{background:var(--surface2);border-color:var(--border2)}
 
-/* Segments */
-.game_segment{width:144px;height:336px;float:left;z-index:1;position:relative;color:white}
-.game_segment .tiles .tile{width:48px;height:48px;float:left;image-rendering:pixelated}
-.game_segment .tiles .tile.door{position:absolute;top:92px;height:144px;left:-12px;width:60px}
-.game_segment .tiles .tile.beam{position:absolute;top:95px;height:108px}
-.game_segment .tiles .tile.water{position:absolute;top:107px;height:108px}
-.game_segment .tiles .tile img{width:100%;cursor:pointer}
-.game_segment .tiles .tile img:hover{-webkit-filter:drop-shadow(2px 0px white) drop-shadow(-2px 0px white) drop-shadow(0px -2px white)}
+/* Footer */
+.footer{
+  padding:16px;text-align:center;color:var(--muted);font-size:11px;
+  border-top:1px solid var(--border);margin-top:8px;
+}
+.footer a{color:var(--text2);text-decoration:none}
 
-.game_segment .tiles .tile label{pointer-events:none}
-.game_segment .tiles .tile .response,.game_segment .tiles .tile .forcedResponse,.game_segment .tiles .tile .responseSuccess{display:none;position:absolute;width:110px;left:0;text-align:center;right:0;pointer-events:none;top:calc(50% - 36px);margin:auto;background:white;color:#141415;padding:6px;border-radius:5px;font-size:9px}
-.game_segment .tiles .tile .forcedResponse{pointer-events:all !important}
-.game_segment .tiles .tile .forcedResponse label{border-radius:5px;position:absolute;right:-6px;cursor:pointer;bottom:-14px;transform:scale(2);z-index:3;transition:all 0.4s 1s}
-
-/* Controls */
-.game_segment__control div{position:absolute;opacity:0;pointer-events:none;border-radius:4px;top:50%;cursor:pointer}
-.game_segment__control div img{transform:scale(3);image-rendering:pixelated;transition:all 0.3s}
-.game_segment__control .forward{transform:translateY(50px) translateX(-48px);left:66px}
-.game_segment__control .backward{transform:translateY(50px) translateX(47px);right:65px}
-.game_segment__control .backward img{transform:rotate(180deg) scale(3)}
-.game_segment__control .up{top:90px !important;left:50%;transform:translateX(-50%) translateY(25px)}
-.game_segment__control .up img{transform:rotate(-90deg) scale(3)}
-.game_segment__control .down{bottom:350px !important;left:50%;top:auto;transform:translateX(-50%) translateY(10px)}
-.game_segment__control .down img{transform:rotate(90deg) scale(3)}
-
-/* Inventory */
-.game_inventory{position:fixed;z-index:9;left:0;color:white;top:auto;bottom:0;width:100%;padding:8px;font-size:10px;background:#1a1a1c;border-top:1px solid #333;display:flex;gap:8px;overflow-x:auto;transform:none;height:auto}
-.game_inventory img{width:32px;height:32px;image-rendering:pixelated}
-.game_inventory__item{display:flex;gap:4px}
-.game_inventory__item .item{display:none;align-items:center;gap:4px;padding:4px;background:#222;border-radius:4px}
-.game_inventory__item .item .name{white-space:nowrap;font-size:9px}
-
-/* Win */
-.game_win{position:fixed;left:0;top:0;background:#141415;z-index:9;width:100%;height:100%;opacity:0;pointer-events:none;transition:all 1s 0s}
-.game_win__inner{position:absolute;left:0;right:0;margin:auto;width:250px;top:50%;transform:translateY(-50%);text-align:center;opacity:0;transition:all 1s 2s}
-.game_win__inner p{color:white;margin-bottom:20px}
-.game_win__inner a{margin-bottom:16px;color:#78f148;text-align:center;width:100%;display:block}
-
-/* Animations */
-@keyframes logo{0%{opacity:0;transform:scale(0)}100%{opacity:1;transform:scale(1)}}
-@keyframes fadeIn{0%{opacity:0}100%{opacity:1}}
-@keyframes fadeOut{0%{opacity:1}100%{opacity:0}}
-@keyframes bar{0%{width:0}100%{width:100%}}
-@keyframes dialogueIn{0%{opacity:0;left:10px}50%{opacity:1;left:15px}100%{opacity:1;left:10px}}
-@keyframes showResponse{0%{opacity:1;top:calc(50% - 26px)}70%{opacity:1;top:calc(50% - 36px)}100%{opacity:0;top:calc(50% - 36px)}}
-@keyframes forcedResponse{0%{opacity:1;top:calc(50% - 26px)}70%{opacity:1;top:calc(50% - 36px)}100%{opacity:1;top:calc(50% - 36px)}}
-@keyframes shake{0%{transform:translateX(0)}10%{transform:translateX(4px)}20%{transform:translateX(-4px)}30%{transform:translateX(4px)}40%{transform:translateX(-4px)}50%{transform:translateX(4px)}60%{transform:translateX(-4px)}70%{transform:translateX(4px)}80%{transform:translateX(-4px)}90%{transform:translateX(4px)}100%{transform:translateX(0)}}
-@keyframes end{0%{transform:translateX(0);opacity:1}50%{transform:translateX(4px);opacity:0.5}100%{transform:translateX(0);opacity:0}}
-
-/* Drip */
-.drip_container{position:relative;top:80px;display:none;z-index:10}
-.drip{width:3px;background:#81eeef;position:absolute;height:0;top:14px;opacity:1}
-
-/* Back button */
-.back-link{position:fixed;top:10px;left:10px;z-index:20;color:#666;font-size:11px;text-decoration:none;padding:6px 12px;background:rgba(255,255,255,0.05);border-radius:4px;border:1px solid rgba(255,255,255,0.1)}
-.back-link:hover{background:rgba(255,255,255,0.1);color:#aaa}
+/* Theme toggle animation */
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.game-card{animation:fadeIn .3s ease both}
+.game-card:nth-child(1){animation-delay:.05s}
+.game-card:nth-child(2){animation-delay:.1s}
+.game-card:nth-child(3){animation-delay:.15s}
+.game-card:nth-child(4){animation-delay:.2s}
+.game-card:nth-child(5){animation-delay:.25s}
 </style>
 </head>
 <body>
 
-<a href="index.html" class="back-link">← TokenCrush (Desktop)</a>
-
-<div class="game">
-  <input type="radio" name="trigger" checked>
-
-  <!-- Loader -->
-  <div class="game_loader">
-    <div class="game_loader__inner">
-      <div class="logo"><img src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/217233/mineLogo.gif" alt="logo"></div>
-      <div class="subtitle"><h1>A no JS Adventure game</h1></div>
-      <div class="bar"><div class="bar_inner"></div></div>
-      <span>Loading checkboxes...</span>
-    </div>
+<div class="header">
+  <div class="header-left">
+    <span class="logo-icon">⚡</span>
+    <span class="logo">TokenCrush</span>
   </div>
-
-  <!-- Intro -->
-  <div class="game_intro">
-    <input id="intro-1" type="radio" name="intro" checked>
-    <div class="dialogue">Ahhhhhhhh!!<label for="intro-2"><img src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/217233/arrowMovement.png" alt="next"></label></div>
-    <input id="intro-2" type="radio" name="intro">
-    <div class="dialogue">The floor just collapsed under me<label for="intro-3"><img src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/217233/arrowMovement.png" alt="next"></label></div>
-    <input id="intro-3" type="radio" name="intro">
-    <div class="dialogue">Geez it sure is dark in here<label for="intro-4"><img src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/217233/arrowMovement.png" alt="next"></label></div>
-    <input id="intro-4" type="radio" name="intro">
-    <div class="dialogue">Let me light my torch...<label for="intro-5"><img src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/217233/arrowMovement.png" alt="next"></label></div>
-    <input id="intro-5" type="radio" name="intro">
-    <div class="dialogue end">Better. Need to find a way out.</div>
-    <input id="intro-6" type="radio" name="intro">
-    <div class="overlay"></div>
-  </div>
-
-  <!-- Padlock -->
-  <input id="interactiveObject--lock" type="checkbox">
-  <div class="padlock"><img src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/217233/padlockBig.png" alt="padlock"></div>
-  <input type="checkbox" value="9" id="padlock1-9" checked><span id="span-1">1</span>
-  <input type="checkbox" value="8" id="padlock1-8"><span id="span-1">2</span>
-  <input type="checkbox" value="7" id="padlock1-7"><span id="span-1">3</span>
-  <input type="checkbox" value="6" id="padlock1-6"><span id="span-1">4</span>
-  <input type="checkbox" value="5" id="padlock1-5"><span id="span-1">5</span>
-  <input type="checkbox" value="4" id="padlock1-4"><span id="span-1">6</span>
-  <input type="checkbox" value="3" id="padlock1-3"><span id="span-1">7</span>
-  <input type="checkbox" value="2" id="padlock1-2"><span id="span-1">8</span>
-  <input type="checkbox" value="1" id="padlock1-1"><span id="span-1">9</span>
-  <input type="checkbox" value="9" id="padlock2-9" checked><span id="span-2">1</span>
-  <input type="checkbox" value="8" id="padlock2-8"><span id="span-2">2</span>
-  <input type="checkbox" value="7" id="padlock2-7"><span id="span-2">3</span>
-  <input type="checkbox" value="6" id="padlock2-6"><span id="span-2">4</span>
-  <input type="checkbox" value="5" id="padlock2-5"><span id="span-2">5</span>
-  <input type="checkbox" value="4" id="padlock2-4"><span id="span-2">6</span>
-  <input type="checkbox" value="3" id="padlock2-3"><span id="span-2">7</span>
-  <input type="checkbox" value="2" id="padlock2-2"><span id="span-2">8</span>
-  <input type="checkbox" value="1" id="padlock2-1"><span id="span-2">9</span>
-  <input type="checkbox" value="9" id="padlock3-9" checked><span id="span-3">1</span>
-  <input type="checkbox" value="8" id="padlock3-8"><span id="span-3">2</span>
-  <input type="checkbox" value="7" id="padlock3-7"><span id="span-3">3</span>
-  <input type="checkbox" value="6" id="padlock3-6"><span id="span-3">4</span>
-  <input type="checkbox" value="5" id="padlock3-5"><span id="span-3">5</span>
-  <input type="checkbox" value="4" id="padlock3-4"><span id="span-3">6</span>
-  <input type="checkbox" value="3" id="padlock3-3"><span id="span-3">7</span>
-  <input type="checkbox" value="2" id="padlock3-2"><span id="span-3">8</span>
-  <input type="checkbox" value="1" id="padlock3-1"><span id="span-3">9</span>
-  <label class="check" for="interactiveObject--lock">check</label>
-
-  <!-- Game objects -->
-  <input id="interactiveObject1" type="radio" data-reference="1">
-  <input id="interactiveObject2" type="radio" data-reference="2">
-  <input id="interactiveObject3" type="checkbox" data-reference="3">
-  <input id="interactiveObject4" type="radio" data-reference="4">
-  <input id="interactiveObject5" type="checkbox" data-reference="5">
-  <input id="interactiveObject6" type="radio" data-reference="6">
-  <input id="interactiveObject7" type="checkbox" data-reference="7">
-  <input id="interactiveObject8" type="radio" data-reference="8">
-  <input id="interactiveObject9" type="radio" data-reference="9">
-  <input id="interactiveObject10" type="radio" data-reference="10">
-  <input id="interactiveObject11" type="radio" data-reference="11">
-  <input id="interactiveObject12" type="radio" data-reference="12">
-  <input id="interactiveObject13" type="checkbox" data-reference="13">
-  <input id="interactiveObject14" type="checkbox" data-reference="14">
-  <input id="interactiveObject15" type="radio" data-reference="15">
-  <input id="interactiveObject16" type="radio" data-reference="16">
-  <input id="interactiveObject17" type="checkbox" data-reference="17">
-  <input id="interactiveObject18" type="radio" data-reference="18">
-  <input id="interactiveObject19" type="radio" data-reference="19">
-  <input id="interactiveObject20" type="radio" data-reference="20">
-  <input id="interactiveObject21" type="radio" data-reference="21">
-  <input id="interactiveObject22" type="radio" data-reference="22">
-
-  <!-- Movement checkboxes -->
-  <input id="indexRow1-2" type="radio" name="trigger" checked>
-  <input id="indexRow1-1" type="radio" name="trigger">
-  <input id="indexRow1-3" type="radio" name="trigger">
-  <input id="indexRow1-4" type="radio" name="trigger">
-  <input id="indexRow1-5" type="radio" name="trigger">
-  <input id="indexRow1-6" type="radio" name="trigger">
-  <input id="indexRow1-7" type="radio" name="trigger">
-  <input id="indexRow1-8" type="radio" name="trigger">
-  <input id="indexRow1-9" type="radio" name="trigger">
-  <input id="indexRow1-10" type="radio" name="trigger">
-  <input id="indexRow1-11" type="radio" name="trigger">
-  <input id="indexRow1-12" type="radio" name="trigger">
-  <input id="indexRow2-1" type="radio" name="trigger">
-  <input id="indexRow2-2" type="radio" name="trigger">
-  <input id="indexRow2-3" type="radio" name="trigger">
-  <input id="indexRow2-4" type="radio" name="trigger">
-  <input id="indexRow2-5" type="radio" name="trigger">
-  <input id="indexRow2-6" type="radio" name="trigger">
-  <input id="indexRow2-7" type="radio" name="trigger">
-  <input id="indexRow2-8" type="radio" name="trigger">
-  <input id="indexRow2-9" type="radio" name="trigger">
-  <input id="indexRow2-10" type="radio" name="trigger">
-  <input id="indexRow2-11" type="radio" name="trigger">
-  <input id="indexRow2-12" type="radio" name="trigger">
-  <input id="indexRow3-1" type="radio" name="trigger">
-  <input id="indexRow3-2" type="radio" name="trigger">
-  <input id="indexRow3-3" type="radio" name="trigger">
-  <input id="indexRow3-4" type="radio" name="trigger">
-  <input id="indexRow3-5" type="radio" name="trigger">
-  <input id="indexRow3-6" type="radio" name="trigger">
-  <input id="indexRow3-7" type="radio" name="trigger">
-  <input id="indexRow3-8" type="radio" name="trigger">
-  <input id="indexRow3-9" type="radio" name="trigger">
-  <input id="indexRow3-10" type="radio" name="trigger">
-  <input id="indexRow3-11" type="radio" name="trigger">
-  <input id="indexRow3-12" type="radio" name="trigger">
-  <input id="indexRow4-1" type="radio" name="trigger">
-  <input id="indexRow4-2" type="radio" name="trigger">
-  <input id="indexRow4-3" type="radio" name="trigger">
-  <input id="indexRow4-4" type="radio" name="trigger">
-  <input id="indexRow4-5" type="radio" name="trigger">
-  <input id="indexRow4-6" type="radio" name="trigger">
-  <input id="indexRow4-7" type="radio" name="trigger">
-  <input id="indexRow4-8" type="radio" name="trigger">
-  <input id="indexRow4-9" type="radio" name="trigger">
-  <input id="indexRow4-10" type="radio" name="trigger">
-  <input id="indexRow4-11" type="radio" name="trigger">
-  <input id="indexRow4-12" type="radio" name="trigger">
-
-  <div class="game_character"></div>
-
-  <!-- Viewport -->
-  <div class="viewport">
-    <img class="level" src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/217233/tilemaps.png" alt="level">
-
-    <!-- Row 1 -->
-    <div class="game_segment">
-      <div class="tiles">
-        <div class="tile"></div><div class="tile"></div>
-        <div class="tile"><label for="interactiveObject1" data-reference="1"><img src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/217233/creepyCorridor-24.png" alt=""><div class="response">Nothing useful in here</div></label></div>
-        <div class="tile"></div><div class="tile"></div>
-        <div class="tile"><label for="interactiveObject8" data-reference="8"><img src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/217233/creepyCorridor-_094.png" alt=""><div class="response">A strange note</div></label></div>
-        <div class="tile"></div>
-        <div class="tile"></div><div class="tile"></div>
-        <div class="tile"><label for="interactiveObject9" data-reference="9"><img src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/217233/creepyCorridor-24.png" alt=""><div class="response">A strange note</div></label></div>
-        <div class="tile"></div>
-        <div class="tile"><label for="interactiveObject2" data-reference="2"><img class="object" src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/217233/creepyCorridor-_035.png" alt=""><div class="response">A pickaxe. This should come in handy</div></label></div>
-      </div>
-      <label for="indexRow1-1"><div class="game_segment__control"></div></label>
-    </div>
-
-    <!-- Row 2 -->
-    <div class="game_segment">
-      <div class="tiles">
-        <div class="tile"></div><div class="tile"></div>
-        <div class="tile"><label for="interactiveObject15" data-reference="15"><img src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/217233/creepyCorridor-_161.png" alt=""><div class="response">Dynamite sticks</div></label></div>
-        <div class="tile"></div><div class="tile"></div>
-        <div class="tile"><label for="interactiveObject6" data-reference="6"><img src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/217233/creepyCorridor-_094.png" alt=""><div class="response">A Plank of wood</div></label></div>
-        <div class="tile"></div>
-        <div class="tile"></div>
-        <div class="tile"><label for="interactiveObject18" data-reference="18"><img src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/217233/creepyCorridor-24.png" alt=""><div class="response">Nothing useful in here</div></label></div>
-        <div class="tile"></div>
-        <div class="tile"><label for="interactiveObject19" data-reference="19"><img src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/217233/creepyCorridor-_094.png" alt=""><div class="response">Full of junk</div></label></div>
-        <div class="tile"><label for="interactiveObject17" data-reference="17"><img class="forced" src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/217233/creepyCorridor-_168.png" alt=""><div class="forcedResponse">If only i had some dynamite &amp; fuses<label for="interactiveObject17"><img src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/217233/arrowMovement.png" alt="next"></label></div></label></div>
-      </div>
-    </div>
-
-    <!-- Row 3 -->
-    <div class="game_segment">
-      <div class="tiles">
-        <div class="tile"></div><div class="tile"></div>
-        <div class="tile"><label for="interactiveObject12" data-reference="12"><img src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/217233/creepyCorridor-_094.png" alt=""><div class="response">Cog handle</div></label></div>
-        <div class="tile door"><label for="interactiveObject--lock" data-reference="11"><img src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/217233/doorLocked.png" alt=""><div class="response">A locked door</div></label></div>
-        <div class="tile"><label for="interactiveObject7" data-reference="7"><img src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/217233/creepyCorridor-_169.png" alt=""><div class="responseSuccess">planks on</div><div class="forcedResponse">CSS won't let me jump this<label for="interactiveObject7"><img src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/217233/arrowMovement.png" alt="next"></label></div></label></div>
-        <div class="tile"></div>
-        <div class="tile"><label for="interactiveObject5" data-reference="5"><img src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/217233/beam.gif" alt=""><div class="responseSuccess">door gone</div><div class="forcedResponse">Something must blow this up<label for="interactiveObject5"><img src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/217233/arrowMovement.png" alt="next"></label></div></label></div>
-        <div class="tile"></div>
-        <div class="tile"></div>
-        <div class="tile"><label for="interactiveObject20" data-reference="20"><img src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/217233/creepyCorridor-24.png" alt=""><div class="response">Just an empty box</div></label></div>
-        <div class="tile"></div><div class="tile"></div>
-      </div>
-    </div>
-
-    <!-- Row 4 -->
-    <div class="game_segment">
-      <div class="tiles">
-        <div class="tile"></div><div class="tile"></div>
-        <div class="tile"></div><div class="tile"></div><div class="tile"></div><div class="tile"></div><div class="tile"></div><div class="tile"></div>
-        <div class="tile"><label for="interactiveObject22" data-reference="22"><img src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/217233/creepyCorridor-_094.png" alt=""><div class="response">Nope empty</div></label></div>
-        <div class="tile"><label for="interactiveObject13" data-reference="13"><img class="forced" src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/217233/creepyCorridor-_148.png" alt=""><div class="responseSuccess">That turned off the water</div><div class="forcedResponse">There's no handle<label for="interactiveObject13"><img src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/217233/arrowMovement.png" alt="next"></label></div></label></div>
-        <div class="tile water"><label for="interactiveObject14" data-reference="14"><img class="forced" src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/217233/waterOn.gif" alt=""><div class="forcedResponse">Cant get through here<label for="interactiveObject14"><img src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/217233/arrowMovement.png" alt="next"></label></div></label></div>
-        <div class="tile"><label for="interactiveObject16" data-reference="16"><img src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/217233/creepyCorridor-_094.png" alt=""><div class="response">Box of fuses</div></label></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Inventory -->
-  <div class="game_inventory">
-    <div class="game_inventory__item">
-      <div class="item" data-reference="0"><img src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/217233/apple.gif" alt=""><span class="name">Apple</span></div>
-      <div class="item" data-reference="2"><img src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/217233/pickInventory.gif" alt=""><span class="name">Pickaxe</span></div>
-      <div class="item" data-reference="6"><img src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/217233/plankInventory.gif" alt=""><span class="name">Plank</span></div>
-      <div class="item" data-reference="8"><img src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/217233/note1.gif" alt=""><span class="name">Note 1</span></div>
-      <div class="item" data-reference="9"><img src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/217233/note2.gif" alt=""><span class="name">Note 2</span></div>
-      <div class="item" data-reference="10"><img src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/217233/note3.gif" alt=""><span class="name">Note 3</span></div>
-      <div class="item" data-reference="12"><img src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/217233/handleInventory.gif" alt=""><span class="name">Handle</span></div>
-      <div class="item" data-reference="15"><img src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/217233/dynamiteInventory.gif" alt=""><span class="name">Dynamite</span></div>
-      <div class="item" data-reference="16"><img src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/217233/fusesInventory.gif" alt=""><span class="name">Fuses</span></div>
-    </div>
-  </div>
-
-  <!-- Win -->
-  <div class="game_win">
-    <div class="game_win__inner">
-      <p>Thanks for playing</p>
-      <a href="https://github.com/rhshourav/TC" target="_blank">View TokenCrush on GitHub</a>
-      <span>Made by @rhshourav</span>
-    </div>
+  <div class="header-right">
+    <button class="icon-btn" id="themeBtn" type="button" aria-label="Toggle theme">☀️</button>
   </div>
 </div>
 
+<div class="hero">
+  <h1>Games</h1>
+  <p>Mobile-friendly games. Pick one to play.</p>
+</div>
+
+<div class="games">
+  <a href="dungeon.html" class="game-card">
+    <div class="game-icon dungeon">🏚️</div>
+    <div class="game-info">
+      <div class="game-title">Dungeon Escape</div>
+      <div class="game-desc">A no-JS adventure game. Solve puzzles, find items, escape the dungeon. Pure CSS mechanics.</div>
+    </div>
+    <span class="game-badge play">Play</span>
+  </a>
+
+  <div class="game-card coming-soon">
+    <div class="game-icon coming">🧩</div>
+    <div class="game-info">
+      <div class="game-title">Coming Soon</div>
+      <div class="game-desc">More games are on the way. Check back later.</div>
+    </div>
+    <span class="game-badge soon">Soon</span>
+  </div>
+
+  <div class="game-card coming-soon">
+    <div class="game-icon coming">🎯</div>
+    <div class="game-info">
+      <div class="game-title">Coming Soon</div>
+      <div class="game-desc">Another game in development.</div>
+    </div>
+    <span class="game-badge soon">Soon</span>
+  </div>
+</div>
+
+<a href="index.html" class="desktop-link">💻 Open TokenCrush (Desktop compressor)</a>
+
+<div class="footer">
+  Made by <a href="https://github.com/rhshourav" target="_blank">@rhshourav</a>
+</div>
+
+<script>
+(function(){
+  var stored=localStorage.getItem('tokencrush-theme');
+  var prefersDark=window.matchMedia('(prefers-color-scheme:dark)').matches;
+  var theme=stored||(prefersDark?'dark':'light');
+  document.documentElement.setAttribute('data-theme',theme);
+
+  var btn=document.getElementById('themeBtn');
+  function updateBtn(){
+    var t=document.documentElement.getAttribute('data-theme');
+    btn.textContent=t==='dark'?'☀️':'🌙';
+  }
+  updateBtn();
+
+  btn.addEventListener('click',function(){
+    var t=document.documentElement.getAttribute('data-theme');
+    var next=t==='dark'?'light':'dark';
+    document.documentElement.setAttribute('data-theme',next);
+    localStorage.setItem('tokencrush-theme',next);
+    updateBtn();
+  });
+})();
+</script>
 </body>
 </html>
