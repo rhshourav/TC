@@ -64,6 +64,11 @@
     <span class="logo-text">TokenCrush</span>
     <span class="logo-badge">FOR CLAUDE</span>
   </a>
+  <button class="sidebar-toggle" onclick="toggleSidebar()" aria-label="Toggle sidebar" title="Toggle sidebar">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M3 12h18M3 6h18M3 18h18"/>
+    </svg>
+  </button>
 
   <!-- Global session stats -->
   <div class="global-stats hidden" id="globalStats">
@@ -436,7 +441,9 @@
       <button class="btn btn-accent btn-apply" type="button" onclick="rebuildPrompt()">Apply</button>
     </div>
   </div>
-</div>
+  </div>
+
+  <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
 
 <script type="module" src="js/app.js"></script>
 

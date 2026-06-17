@@ -489,6 +489,18 @@ document.addEventListener('DOMContentLoaded', () => {
   onFileSelect(setChatContext);
   onRenderOutput(renderOutput);
 
+  // Responsive sidebar toggle
+  function toggleSidebar() {
+    const sidebar = document.querySelector('.sidebar');
+    const overlay = document.querySelector('.sidebar-overlay');
+    if (sidebar && overlay) {
+      const isOpen = sidebar.classList.toggle('open');
+      overlay.classList.toggle('show', isOpen);
+      document.body.style.overflow = isOpen ? 'hidden' : '';
+    }
+  }
+  window.toggleSidebar = toggleSidebar;
+
   const themeBtn = document.getElementById('themeToggle');
   if (themeBtn) themeBtn.addEventListener('click', toggleTheme);
 
