@@ -219,23 +219,30 @@ export function switchTab(name) {
   const outEmpty = document.getElementById('outEmpty');
   const outCode = document.getElementById('outCode');
 
-  // Hide everything first
-  document.querySelectorAll('.out-content > div').forEach(d => d.classList.remove('show'));
-  if (chatPanel) chatPanel.classList.add('hidden');
+  // Hide everything
   if (outEmpty) outEmpty.style.display = 'none';
-  if (outCode) outCode.style.display = 'none';
+  if (outCode) { outCode.style.display = 'none'; outCode.classList.remove('show'); }
+  if (chatPanel) chatPanel.classList.add('hidden');
+  document.querySelectorAll('.diff-view,.prompt-view,.bundle-view,.history-view').forEach(d => d.classList.remove('show'));
 
   if (name === 'chat') {
-    // Chat takes over the full content area
     if (chatPanel) chatPanel.classList.remove('hidden');
     const messages = document.getElementById('chatMessages');
     if (messages) messages.scrollTop = messages.scrollHeight;
     return;
   }
 
-  // For non-chat tabs, show the right content
+  if (name === 'compressed') {
+    if (outCode) { outCode.style.display = 'block'; outCode.classList.add('show'); }
+    // Show empty state if no content
+    if (outCode && !outCode.value) {
+      if (outEmpty) outEmpty.style.display = 'flex';
+      if (outCode) outCode.style.display = 'none';
+    }
+    return;
+  }
+
   const tabMap = {
-    compressed: 'outCode',
     diff: 'diffView',
     prompt: 'promptView',
     bundle: 'bundleView',
@@ -244,10 +251,6 @@ export function switchTab(name) {
   };
   const target = document.getElementById(tabMap[name]);
   if (target) target.classList.add('show');
-
-  if (name === 'compressed' && !target?.value) {
-    if (outEmpty) outEmpty.style.display = 'flex';
-  }
 
   if (name === 'bundle') buildBundleView();
   if (name === 'history') buildHistoryView();

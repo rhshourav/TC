@@ -37,23 +37,28 @@ window.doReplaceAll = doReplaceAll;
 window.onEditorInput = onEditorInput;
 
 function handleFiles(fileList, parentFolderId = null) {
-  let added = 0;
+  const promises = [];
   for (const file of fileList) {
     if (file.name.endsWith('.zip')) {
-      handleZip(file, parentFolderId);
+      promises.push(handleZip(file, parentFolderId));
       continue;
     }
     if (!isCompressible(file.name)) continue;
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      addFile(file.name, e.target.result, parentFolderId);
-      added++;
-      renderFileList();
-      updateFileCount();
-    };
-    reader.readAsText(file);
+    const p = new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        addFile(file.name, e.target.result, parentFolderId);
+        renderFileList();
+        updateFileCount();
+        resolve();
+      };
+      reader.onerror = () => resolve();
+      reader.readAsText(file);
+    });
+    promises.push(p);
   }
+  return Promise.all(promises);
 }
 
 async function handleZip(file, parentFolderId) {
@@ -389,41 +394,39 @@ function initDragDrop() {
     e.dataTransfer.dropEffect = 'copy';
   });
 
-  document.addEventListener('drop', (e) => {
+  document.addEventListener('drop', async (e) => {
     e.preventDefault();
     e.stopPropagation();
     dragCounter = 0;
     if (overlay) overlay.classList.remove('show');
 
     const dt = e.dataTransfer;
-    let count = 0;
 
     if (dt.items && dt.items.length > 0) {
       const entries = [];
-      let allNull = true;
       for (const item of dt.items) {
         if (item.kind === 'file') {
           const entry = item.webkitGetAsEntry ? item.webkitGetAsEntry() : null;
-          if (entry) { entries.push(entry); allNull = false; }
+          if (entry) entries.push(entry);
         }
       }
       if (entries.length > 0) {
-        processEntries(entries);
-        count = dt.items.length;
-      } else if (dt.files && dt.files.length > 0) {
-        handleFiles(dt.files);
-        count = dt.files.length;
+        showToast(`Loading ${entries.length} item${entries.length > 1 ? 's' : ''}...`);
+        await processEntries(entries);
+        showToast('Files loaded');
+        return;
       }
-    } else if (dt.files && dt.files.length > 0) {
-      handleFiles(dt.files);
-      count = dt.files.length;
     }
 
-    if (count > 0) {
-      showToast(`Processing ${count} item${count > 1 ? 's' : ''}...`);
-    } else {
-      showToast('No supported files found', 'err');
+    if (dt.files && dt.files.length > 0) {
+      const count = dt.files.length;
+      showToast(`Loading ${count} file${count > 1 ? 's' : ''}...`);
+      await handleFiles(dt.files);
+      showToast('Files loaded');
+      return;
     }
+
+    showToast('No supported files found', 'err');
   });
 }
 
