@@ -10,7 +10,7 @@ export function renderOutput(id) {
   const sb = document.getElementById('statsBar');
 
   if (oe) oe.style.display = 'none';
-  if (oc) oc.value = f.compressed;
+  if (oc) { oc.value = f.compressed; oc.style.display = 'block'; }
   if (sb) sb.style.display = 'block';
 
   const saved = f.tokenIn - f.tokenOut;

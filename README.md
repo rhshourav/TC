@@ -10,6 +10,7 @@
 
 [![Deploy Status](https://img.shields.io/github/actions/workflow/status/rhshourav/tc/deploy.yml?branch=main&label=deploy&style=flat-square&color=7c6dfa)](https://github.com/rhshourav/tc/actions)
 [![Live Site](https://img.shields.io/badge/live-rhshourav.github.io/tc-3ecf8e?style=flat-square)](https://rhshourav.github.io/tc)
+[![Cloudflare Pages](https://img.shields.io/badge/live-tokencrush.pages.dev-f38020?style=flat-square)](https://tokencrush.pages.dev)
 [![License](https://img.shields.io/github/license/rhshourav/tc?style=flat-square&color=a393ff)](LICENSE)
 [![Modular](https://img.shields.io/badge/architecture-modular_ES_modules-f5a623?style=flat-square)](#)
 
@@ -61,7 +62,7 @@ It runs entirely in the browser. No server. No install. No data leaves your mach
 
 **Stats bar** — input tokens, output tokens, percentage saved, colour-coded gauge.
 
-**Live stats** — header shows visitor count (via [counter.dev](https://counter.dev)) and total files compressed across all sessions (localStorage).
+**Live stats** — header shows visitor count and total files compressed across all sessions, backed by a Cloudflare Worker with KV storage.
 
 **Theme** — light/dark toggle with system-preference detection and `localStorage` persistence.
 
