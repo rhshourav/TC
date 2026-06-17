@@ -2,6 +2,9 @@ import { state } from '../core/state.js';
 import { estTok } from '../core/helpers.js';
 import { getLanguage, getLangBadgeClass } from '../languages/index.js';
 
+let _onFileSelect = null;
+export function onFileSelect(cb) { _onFileSelect = cb; }
+
 export function selectFile(id) {
   const f = state.files.get(id);
   if (!f) return;
@@ -30,6 +33,8 @@ export function selectFile(id) {
 
   updateEditorMeta();
   updateBudgetBar();
+
+  if (_onFileSelect) _onFileSelect(f);
 }
 
 export function showEditorEmpty() {

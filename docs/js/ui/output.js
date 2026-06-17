@@ -216,6 +216,9 @@ export function switchTab(name) {
   document.querySelector(`.out-tab[data-tab="${name}"]`)?.classList.add('active');
 
   document.querySelectorAll('.out-content > div').forEach(d => d.classList.remove('show'));
+  const chatPanel = document.getElementById('chatPanel');
+  if (chatPanel) chatPanel.classList.add('hidden');
+
   const tabMap = {
     compressed: 'outCode',
     diff: 'diffView',
@@ -226,6 +229,12 @@ export function switchTab(name) {
   };
   const target = document.getElementById(tabMap[name]);
   if (target) target.classList.add('show');
+
+  if (name === 'chat') {
+    if (chatPanel) chatPanel.classList.remove('hidden');
+    const messages = document.getElementById('chatMessages');
+    if (messages) messages.scrollTop = messages.scrollHeight;
+  }
 
   if (name === 'bundle') buildBundleView();
   if (name === 'history') buildHistoryView();

@@ -48,6 +48,15 @@
 
 <div class="toast" id="toast"></div>
 
+<!-- Global drag overlay -->
+<div class="drag-overlay" id="dragOverlay">
+  <div class="drag-overlay-inner">
+    <div class="drag-overlay-icon">📂</div>
+    <div class="drag-overlay-text">Drop files, folders or ZIP</div>
+    <div class="drag-overlay-sub">.js .ts .html .css .py .c .cpp .json .md .zip</div>
+  </div>
+</div>
+
 <!-- Header -->
 <header>
   <a class="logo" href="#">
@@ -293,6 +302,9 @@
       <div class="out-tab" data-tab="allstats" onclick="switchTab('allstats',this)">
         <span class="tab-icon">⊞</span>All Stats
       </div>
+      <div class="out-tab" data-tab="chat" onclick="switchTab('chat',this)">
+        <span class="tab-icon">💬</span>Chat
+      </div>
     </div>
 
     <!-- Progress strip -->
@@ -311,6 +323,46 @@
       <div class="bundle-view" id="bundleView"></div>
       <div class="history-view" id="historyView"></div>
       <div class="diff-view" id="allstatsView"></div>
+      <div class="chat-panel hidden" id="chatPanel">
+        <div class="chat-status" id="chatStatus">
+          <div class="chat-model-info">
+            <span class="chat-model-icon">🤖</span>
+            <div class="chat-model-details">
+              <div class="chat-model-name">Qwen2.5 0.5B Instruct</div>
+              <div class="chat-model-size">~300MB · Runs in your browser</div>
+            </div>
+          </div>
+          <button class="btn btn-accent chat-download-btn" id="chatDownloadBtn" type="button" onclick="chatDownloadModel()">Download Model</button>
+          <div class="chat-progress hidden" id="chatProgress">
+            <div class="chat-progress-track"><div class="chat-progress-fill" id="chatProgressFill"></div></div>
+            <div class="chat-progress-text" id="chatProgressText">Preparing...</div>
+          </div>
+        </div>
+        <div class="chat-context-bar" id="chatContextBar">
+          <span class="chat-ctx-label">Context:</span>
+          <span class="chat-ctx-file" id="chatCtxFile">No file selected</span>
+          <button class="btn btn-sm" type="button" onclick="chatClearContext()" title="Clear context">✕</button>
+        </div>
+        <div class="chat-messages" id="chatMessages">
+          <div class="chat-welcome">
+            <div class="chat-welcome-icon">💬</div>
+            <p>Chat with your code. Ask questions about the selected file.</p>
+            <p class="chat-welcome-sub">Model runs 100% in your browser — no data leaves your device.</p>
+          </div>
+        </div>
+        <div class="chat-input-area">
+          <div class="chat-input-row">
+            <textarea class="chat-input" id="chatInput" placeholder="Ask about your code..." rows="1" onkeydown="chatKeydown(event)"></textarea>
+            <button class="chat-send-btn" id="chatSendBtn" type="button" onclick="chatSend()" disabled aria-label="Send message">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+            </button>
+          </div>
+          <div class="chat-input-actions">
+            <button class="btn btn-sm" type="button" onclick="chatGenReadme()" id="chatReadmeBtn" disabled>📝 Generate README</button>
+            <button class="btn btn-sm" type="button" onclick="chatClear()" id="chatClearBtn">Clear chat</button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- AI summary -->

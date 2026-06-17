@@ -5,10 +5,11 @@ import { estTok } from './core/helpers.js';
 import { addFile, addFolder, clearAll, compressFileById, compressAllFiles } from './core/engine.js';
 import { getLanguage, isCompressible, getLangBadgeClass } from './languages/index.js';
 import { renderFileList, updateFileCount, filterFiles } from './ui/sidebar.js';
-import { selectFile, showEditorEmpty, updateEditorMeta, onEditorInput, updateBudgetBar } from './ui/editor.js';
+import { selectFile, showEditorEmpty, updateEditorMeta, onEditorInput, updateBudgetBar, onFileSelect } from './ui/editor.js';
 import { renderOutput, showOutEmpty, switchTab, setProgress, copyOutput, exportBundle, showToast, buildBundleView, buildHistoryView, toggleCtx } from './ui/output.js';
 import { initTheme, toggleTheme } from './ui/theme.js';
 import { openFindBar, closeFindBar, doFind, findNext, findPrev, doReplace, doReplaceAll } from './ui/find.js';
+import { initChat, chatSend, chatKeydown, chatDownloadModel, chatClear, chatClearContext, chatGenReadme, setChatContext } from './ui/chat.js';
 
 window.selectFile = selectFile;
 window.showEditorEmpty = showEditorEmpty;
@@ -362,13 +363,42 @@ function initKeyboardShortcuts() {
 }
 
 function initDragDrop() {
-  document.body.addEventListener('dragover', (e) => e.preventDefault());
-  document.body.addEventListener('drop', (e) => {
+  let dragCounter = 0;
+  const overlay = document.getElementById('dragOverlay');
+
+  document.addEventListener('dragenter', (e) => {
     e.preventDefault();
+    dragCounter++;
+    if (dragCounter === 1 && overlay) overlay.classList.add('show');
+  });
+
+  document.addEventListener('dragleave', (e) => {
+    e.preventDefault();
+    dragCounter--;
+    if (dragCounter === 0 && overlay) overlay.classList.remove('show');
+  });
+
+  document.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+  });
+
+  document.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dragCounter = 0;
+    if (overlay) overlay.classList.remove('show');
+
     const dt = e.dataTransfer;
     if (dt.items && dt.items.length > 0) {
-      handleDataTransferItems(dt.items);
-    } else {
+      const hasEntries = Array.from(dt.items).some(item =>
+        item.webkitGetAsEntry || item.getAsEntry
+      );
+      if (hasEntries) {
+        handleDataTransferItems(dt.items);
+      } else if (dt.files && dt.files.length > 0) {
+        handleFiles(dt.files);
+      }
+    } else if (dt.files && dt.files.length > 0) {
       handleFiles(dt.files);
     }
   });
@@ -424,6 +454,8 @@ document.addEventListener('DOMContentLoaded', () => {
   initKeyboardShortcuts();
   initDragDrop();
   initAccessibility();
+  initChat();
+  onFileSelect(setChatContext);
 
   const themeBtn = document.getElementById('themeToggle');
   if (themeBtn) themeBtn.addEventListener('click', toggleTheme);
@@ -470,6 +502,13 @@ document.addEventListener('DOMContentLoaded', () => {
       handleFiles(dt.files);
     }
   };
+
+  window.chatSend = chatSend;
+  window.chatKeydown = chatKeydown;
+  window.chatDownloadModel = chatDownloadModel;
+  window.chatClear = chatClear;
+  window.chatClearContext = chatClearContext;
+  window.chatGenReadme = chatGenReadme;
 
   renderFileList();
   updateFileCount();
