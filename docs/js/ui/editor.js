@@ -1,6 +1,7 @@
 import { state } from '../core/state.js';
 import { estTok } from '../core/helpers.js';
 import { getLanguage, getLangBadgeClass } from '../languages/index.js';
+import { CLAUDE_CTX, AUTO_COMPRESS_DELAY } from '../core/config.js';
 
 let _onFileSelect = null;
 let _onRenderOutput = null;
@@ -82,8 +83,7 @@ export function updateEditorMeta() {
 export function updateTokenPill(tok) {
   const pill = document.getElementById('editorTokenPill');
   if (!pill) return;
-  const ctx = 200000;
-  const pct = (tok / ctx) * 100;
+  const pct = (tok / CLAUDE_CTX) * 100;
   pill.className = 'token-pill' + (pct > 80 ? ' danger' : pct > 50 ? ' warn' : '');
 }
 
@@ -92,12 +92,11 @@ export function updateBudgetBar() {
   const f = state.files.get(state.activeFileId);
   if (!f) return;
   const tok = estTok(f.content);
-  const ctx = 200000;
-  const pct = Math.min(100, Math.round((tok / ctx) * 100));
+  const pct = Math.min(100, Math.round((tok / CLAUDE_CTX) * 100));
   const fill = document.getElementById('budgetBarFill');
   const wrap = document.getElementById('budgetBarWrap');
   if (fill) { fill.style.width = pct + '%'; fill.className = 'budget-bar-fill' + (pct > 80 ? ' warn' : ''); }
-  if (wrap) wrap.title = `${tok.toLocaleString()} / ${ctx.toLocaleString()} tokens (${pct}% of Claude context)`;
+  if (wrap) wrap.title = `${tok.toLocaleString()} / ${CLAUDE_CTX.toLocaleString()} tokens (${pct}% of Claude context)`;
 }
 
 export function onEditorInput() {
@@ -117,4 +116,20 @@ export function onEditorInput() {
   updateTokenPill(tok);
   updateBudgetBar();
   updateEditorMeta();
+
+  // Debounced auto-compress — uses AUTO_COMPRESS_DELAY from config
+  if (document.getElementById('tglAutoCompress')?.checked) {
+    if (state.autoCompressTimer !== null) clearTimeout(state.autoCompressTimer);
+    state.autoCompressTimer = setTimeout(() => {
+      state.autoCompressTimer = null;
+      if (state.activeFileId) {
+        // Import lazily to avoid circular deps at module load time
+        import('../core/engine.js').then(({ compressFileById }) => {
+          compressFileById(state.activeFileId);
+          // Trigger output re-render via the registered callback
+          if (_onRenderOutput) _onRenderOutput(state.activeFileId);
+        });
+      }
+    }, AUTO_COMPRESS_DELAY);
+  }
 }
