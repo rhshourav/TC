@@ -36,7 +36,7 @@ window.doReplace = doReplace;
 window.doReplaceAll = doReplaceAll;
 window.onEditorInput = onEditorInput;
 
-function handleFiles(fileList, parentFolderId = null) {
+async function handleFiles(fileList, parentFolderId = null) {
   const promises = [];
   let added = 0;
   let skipped = 0;
@@ -44,8 +44,9 @@ function handleFiles(fileList, parentFolderId = null) {
     const file = fileList[i];
     if (!file) continue;
     if (file.name && file.name.endsWith('.zip')) {
-      promises.push(handleZip(file, parentFolderId));
-      added++;
+      promises.push(
+        handleZip(file, parentFolderId).then((r) => ({ kind: 'zip', ...r }))
+      );
       continue;
     }
     if (!isCompressible(file.name)) { skipped++; continue; }
@@ -69,7 +70,14 @@ function handleFiles(fileList, parentFolderId = null) {
     });
     promises.push(p);
   }
-  return Promise.all(promises).then(() => ({ added, skipped }));
+
+  const zipResults = (await Promise.all(promises)).filter((r) => r && r.kind === 'zip');
+  for (const r of zipResults) {
+    added += r.added;
+    skipped += r.skipped;
+  }
+
+  return { added, skipped };
 }
 
 async function handleZip(file, parentFolderId) {
@@ -101,20 +109,25 @@ async function handleZip(file, parentFolderId) {
       folderMap.set(folderPath, id);
     }
 
+    let added = 0;
+    let skipped = 0;
     for (const { path, entry } of filesList) {
-      if (!isCompressible(path)) continue;
+      if (!isCompressible(path)) { skipped++; continue; }
       const content = await entry.async('text');
       const parts = path.split('/');
       const folderPath = parts.length > 1 ? parts.slice(0, -1).join('/') : null;
       const folderId = folderMap.get(folderPath) || parentFolderId;
       addFile(parts[parts.length - 1], content, folderId);
+      added++;
     }
 
     renderFileList();
     updateFileCount();
     showToast('ZIP extracted');
+    return { added, skipped };
   } catch (err) {
     showToast('Failed to extract ZIP: ' + err.message, 'err');
+    return { added: 0, skipped: 0 };
   }
 }
 
