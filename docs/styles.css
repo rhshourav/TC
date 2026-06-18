@@ -511,6 +511,8 @@ body {
   background: radial-gradient(circle at 50% 50%, var(--accent-dim) 0%, transparent 70%);
   opacity: 0;
   transition: opacity var(--duration-normal);
+  pointer-events: none;
+  z-index: 0;
 }
 
 .drop-zone:hover,
