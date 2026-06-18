@@ -230,6 +230,66 @@ export function setProgress(pct) {
   if (fill) fill.style.width = pct + '%';
 }
 
+export function buildAllStats() {
+  const allstatsView = document.getElementById('allstatsView');
+  if (!allstatsView) return;
+
+  const files = [...state.files.entries()];
+  const compressed = files.filter(([, f]) => f.compressed);
+
+  if (compressed.length === 0) {
+    allstatsView.innerHTML = '<div class="allstats-empty">No files compressed yet</div>';
+    return;
+  }
+
+  let totalIn = 0, totalOut = 0, totalLines = 0, totalCtxEntries = 0;
+  const langStats = {};
+
+  for (const [, f] of compressed) {
+    totalIn += f.tokenIn;
+    totalOut += f.tokenOut;
+    const lines = (f.content || '').split('\n').length;
+    totalLines += lines;
+    totalCtxEntries += (f.ctxMap || []).length;
+
+    const ext = f.name.split('.').pop().toLowerCase();
+    const lang = getLangLabel(ext);
+    if (!langStats[lang]) langStats[lang] = { count: 0, tokIn: 0, tokOut: 0 };
+    langStats[lang].count++;
+    langStats[lang].tokIn += f.tokenIn;
+    langStats[lang].tokOut += f.tokenOut;
+  }
+
+  const totalSaved = totalIn - totalOut;
+  const totalPct = totalIn > 0 ? Math.round((totalSaved / totalIn) * 100) : 0;
+
+  let html = '<div class="allstats-content">';
+
+  html += `<div class="allstats-summary">
+    <div class="as-card"><div class="as-val">${compressed.length}</div><div class="as-lbl">Files Compressed</div></div>
+    <div class="as-card"><div class="as-val">${totalIn.toLocaleString()}</div><div class="as-lbl">Tokens In</div></div>
+    <div class="as-card"><div class="as-val">${totalOut.toLocaleString()}</div><div class="as-lbl">Tokens Out</div></div>
+    <div class="as-card as-accent"><div class="as-val">-${totalSaved.toLocaleString()}</div><div class="as-lbl">Saved (${totalPct}%)</div></div>
+    <div class="as-card"><div class="as-val">${totalLines.toLocaleString()}</div><div class="as-lbl">Total Lines</div></div>
+    <div class="as-card"><div class="as-val">${totalCtxEntries}</div><div class="as-lbl">Identifier Mappings</div></div>
+  </div>`;
+
+  html += '<div class="allstats-table"><div class="at-header"><span>Language</span><span>Files</span><span>Tokens In</span><span>Tokens Out</span><span>Saved</span></div>';
+  for (const [lang, s] of Object.entries(langStats).sort((a, b) => b[1].tokIn - a[1].tokIn)) {
+    const saved = s.tokIn - s.tokOut;
+    const pct = s.tokIn > 0 ? Math.round((saved / s.tokIn) * 100) : 0;
+    html += `<div class="at-row"><span>${escH(lang)}</span><span>${s.count}</span><span>${s.tokIn.toLocaleString()}</span><span>${s.tokOut.toLocaleString()}</span><span class="at-saved">-${saved.toLocaleString()} (${pct}%)</span></div>`;
+  }
+  html += '</div></div>';
+
+  allstatsView.innerHTML = html;
+}
+
+function getLangLabel(ext) {
+  const map = { js: 'JavaScript', ts: 'TypeScript', py: 'Python', html: 'HTML', css: 'CSS', json: 'JSON', md: 'Markdown', c: 'C', cpp: 'C++', java: 'Java', go: 'Go', rs: 'Rust', rb: 'Ruby', php: 'PHP', sh: 'Shell', yml: 'YAML', yaml: 'YAML', xml: 'XML', txt: 'Text' };
+  return map[ext] || ext.toUpperCase();
+}
+
 export function switchTab(name) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.querySelector(`.tab[data-tab="${name}"]`)?.classList.add('active');
@@ -290,6 +350,7 @@ export function switchTab(name) {
   }
   if (name === 'bundle') buildBundleView();
   if (name === 'history') buildHistoryView();
+  if (name === 'allstats') buildAllStats();
 }
 
 export function toggleCtx() {
