@@ -290,7 +290,7 @@ function updateGlobalStats() {
 
 function setStrategy(strategy, el) {
   state.currentStrategy = strategy;
-  document.querySelectorAll('.spill').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.pill').forEach(s => s.classList.remove('active'));
   if (el) el.classList.add('active');
 }
 
@@ -537,11 +537,11 @@ function saveToggles() {
 }
 
 function initAccessibility() {
-  document.querySelectorAll('.out-tab').forEach(tab => {
+  document.querySelectorAll('.tab').forEach(tab => {
     tab.setAttribute('role', 'tab');
     tab.setAttribute('aria-selected', tab.classList.contains('active'));
     tab.addEventListener('click', () => {
-      document.querySelectorAll('.out-tab').forEach(t => t.setAttribute('aria-selected', 'false'));
+      document.querySelectorAll('.tab').forEach(t => t.setAttribute('aria-selected', 'false'));
       tab.setAttribute('aria-selected', 'true');
     });
   });

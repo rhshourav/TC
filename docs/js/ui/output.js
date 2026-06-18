@@ -231,8 +231,8 @@ export function setProgress(pct) {
 }
 
 export function switchTab(name) {
-  document.querySelectorAll('.out-tab').forEach(t => t.classList.remove('active'));
-  document.querySelector(`.out-tab[data-tab="${name}"]`)?.classList.add('active');
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelector(`.tab[data-tab="${name}"]`)?.classList.add('active');
 
   const chatPanel = document.getElementById('chatPanel');
   const outEmpty = document.getElementById('outEmpty');
@@ -297,7 +297,7 @@ export function toggleCtx() {
 }
 
 export function copyOutput() {
-  const activeTab = document.querySelector('.out-tab.active')?.dataset.tab || 'compressed';
+  const activeTab = document.querySelector('.tab.active')?.dataset.tab || 'compressed';
   let text = '';
 
   switch (activeTab) {

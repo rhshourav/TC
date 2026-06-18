@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <script>
@@ -8,15 +8,15 @@
   if (isMobile) { window.location.href = 'game.html'; return; }
   try{
     var stored=localStorage.getItem('tokencrush-theme');
-    var theme=stored||'light';
+    var theme=stored||'dark';
     document.documentElement.setAttribute('data-theme',theme);
-  }catch(e){document.documentElement.setAttribute('data-theme','light');}
+  }catch(e){document.documentElement.setAttribute('data-theme','dark');}
 })();
 </script>
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>TokenCrush — Smart Code Compressor for Claude</title>
 <meta name="description" content="TokenCrush strips whitespace, comments, and bloated identifiers from your code, then optionally lets Claude compress it further — so you can paste more files into a single prompt without burning your context window.">
-<meta name="theme-color" id="themeColorMeta" content="#09090c">
+<meta name="theme-color" id="themeColorMeta" content="#0a0a0f">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%237c6dfa'/%3E%3Ctext x='32' y='44' font-size='34' text-anchor='middle' fill='white'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta property="og:type" content="website">
@@ -27,28 +27,44 @@
 <meta name="twitter:title" content="TokenCrush — Smart Code Compressor for Claude">
 <meta name="twitter:description" content="Strip whitespace, comments, and bloated identifiers from your code — then hand Claude more files per prompt without burning your context window.">
 <meta name="twitter:image" content="og-image.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
-
 </head>
 <body>
 
-<!-- AI overlay -->
-<div class="ai-overlay" id="aiOverlay">
-  <div class="ai-card">
-    <div class="ai-spin"></div>
-    <h3>Claude is compressing your code</h3>
-    <p>Semantic analysis, identifier mapping, and logic summarization in progress.</p>
-      <div class="ai-progress-wrap">
-        <div class="ai-progress-track"><div class="ai-progress-fill" id="aiProg"></div></div>
+<!-- Animated Background Orbs -->
+<div class="orb-background">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+</div>
+
+<!-- Noise Texture Overlay -->
+<div class="noise-overlay"></div>
+
+<!-- AI Overlay -->
+<div class="ai-overlay glassmorphism" id="aiOverlay">
+  <div class="ai-card glassmorphism">
+    <div class="ai-spinner">
+      <div class="ai-spinner-ring"></div>
+      <div class="ai-spinner-icon">⚡</div>
+    </div>
+    <h3 class="ai-title">Compressing your code</h3>
+    <p class="ai-desc">Semantic analysis, identifier mapping, and logic summarization in progress.</p>
+    <div class="ai-progress-wrap">
+      <div class="ai-progress-track"><div class="ai-progress-fill" id="aiProg"></div></div>
       <div class="ai-stage" id="aiStage">Initializing...</div>
     </div>
     <div class="ai-file-list" id="aiFileList"></div>
   </div>
 </div>
 
+<!-- Toast -->
 <div class="toast" id="toast"></div>
 
-<!-- Global drag overlay -->
+<!-- Drag Overlay -->
 <div class="drag-overlay" id="dragOverlay">
   <div class="drag-overlay-inner">
     <div class="drag-overlay-icon">📂</div>
@@ -58,74 +74,79 @@
 </div>
 
 <!-- Header -->
-<header>
+<header class="header glassmorphism">
   <a class="logo" href="#">
-    <div class="logo-icon">⚡</div>
+    <div class="logo-icon">
+      <span>⚡</span>
+    </div>
     <span class="logo-text">TokenCrush</span>
     <span class="logo-badge">FOR CLAUDE</span>
   </a>
+  
   <button class="sidebar-toggle" type="button" onclick="toggleSidebar()" aria-label="Toggle sidebar" title="Toggle sidebar">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <path d="M3 12h18M3 6h18M3 18h18"/>
     </svg>
   </button>
 
-  <!-- Global session stats -->
+  <!-- Global Stats -->
   <div class="global-stats hidden" id="globalStats">
-    <div class="gs-chip">
-      <span class="gs-chip-icon">📁</span>
-      <span class="gs-chip-val" id="gsTotalFiles">0</span>
-      <span class="gs-chip-lbl">files</span>
+    <div class="stat-chip">
+      <span class="stat-chip-icon">📁</span>
+      <span class="stat-chip-value" id="gsTotalFiles">0</span>
+      <span class="stat-chip-label">files</span>
     </div>
-    <div class="gs-chip">
-      <span class="gs-chip-icon">💾</span>
-      <span class="gs-chip-val green" id="gsTotalSaved">0</span>
-      <span class="gs-chip-lbl">saved</span>
+    <div class="stat-chip">
+      <span class="stat-chip-icon">💾</span>
+      <span class="stat-chip-value green" id="gsTotalSaved">0</span>
+      <span class="stat-chip-label">saved</span>
     </div>
-    <div class="gs-chip">
-      <span class="gs-chip-icon">📊</span>
-      <span class="gs-chip-val green" id="gsAvgReduction">0%</span>
-      <span class="gs-chip-lbl">avg</span>
+    <div class="stat-chip">
+      <span class="stat-chip-icon">📊</span>
+      <span class="stat-chip-value green" id="gsAvgReduction">0%</span>
+      <span class="stat-chip-label">avg</span>
     </div>
   </div>
 
   <div class="stats-display" id="statsDisplay">
-    <div class="stats-chip" title="Visitor count">
-      <span class="stats-chip-icon">👁</span>
-      <span class="stats-chip-val" id="visitorCount">—</span>
-      <span class="stats-chip-lbl">visitors</span>
+    <div class="stat-chip" title="Visitor count">
+      <span class="stat-chip-icon">👁</span>
+      <span class="stat-chip-value" id="visitorCount">—</span>
+      <span class="stat-chip-label">visitors</span>
     </div>
-    <div class="stats-chip" title="Files compressed across all sessions">
-      <span class="stats-chip-icon">⚡</span>
-      <span class="stats-chip-val" id="filesCompressedCount">0</span>
-      <span class="stats-chip-lbl">compressed</span>
+    <div class="stat-chip" title="Files compressed across all sessions">
+      <span class="stat-chip-icon">⚡</span>
+      <span class="stat-chip-value" id="filesCompressedCount">0</span>
+      <span class="stat-chip-label">compressed</span>
     </div>
   </div>
 
-  <div class="hdr-right">
-    <span class="kbd"><kbd>⌘</kbd><kbd>↵</kbd> compress</span>
-    <span class="kbd"><kbd>⌘</kbd><kbd>F</kbd> find</span>
-    <div class="hdr-sep"></div>
-    <button class="btn" type="button" onclick="loadExample()">Load example</button>
-    <button class="btn" type="button" onclick="clearAll()">Clear all</button>
-    <button class="btn btn-green" type="button" onclick="exportBundle()">Export bundle</button>
-    <button class="btn btn-accent" type="button" onclick="triggerFileInput()">+ Add files</button>
+  <div class="header-right">
+    <div class="kbd-hints">
+      <span class="kbd"><kbd>⌘</kbd><kbd>↵</kbd> compress</span>
+      <span class="kbd"><kbd>⌘</kbd><kbd>F</kbd> find</span>
+    </div>
+    <div class="header-divider"></div>
+    <button class="btn btn-magnetic" type="button" onclick="loadExample()">Load example</button>
+    <button class="btn btn-magnetic" type="button" onclick="clearAll()">Clear all</button>
+    <button class="btn btn-success btn-magnetic" type="button" onclick="exportBundle()">Export bundle</button>
+    <button class="btn btn-primary btn-magnetic" type="button" onclick="triggerFileInput()">+ Add files</button>
     <input type="file" id="globalFileInput" class="hidden" multiple accept=".js,.ts,.jsx,.tsx,.html,.css,.py,.json,.md,.txt,.c,.cpp,.h,.hpp,.zip" onchange="handleFileInputChange(this)">
     <input type="file" id="globalFolderInput" class="hidden" multiple webkitdirectory onchange="handleFolderInputChange(this)">
-    <div class="hdr-sep"></div>
+    <div class="header-divider"></div>
     <a class="author-chip" href="https://github.com/rhshourav/TC" target="_blank" rel="noopener" title="View on GitHub by @rhshourav">
-      <div class="ac-avatar">
+      <div class="author-avatar">
         <img src="https://github.com/rhshourav.png" alt="rhshourav" onerror="this.parentElement.textContent='R'">
       </div>
-      <div>
-        <div class="ac-name">rhshourav</div>
-        <div class="ac-gh">
+      <div class="author-info">
+        <div class="author-name">rhshourav</div>
+        <div class="author-gh">
           <svg width="8" height="8" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
           github
         </div>
       </div>
     </a>
-    <div class="hdr-sep"></div>
+    <div class="header-divider"></div>
     <button class="theme-toggle" id="themeToggle" type="button" aria-pressed="false" aria-label="Switch to light mode" title="Switch to light mode">
       <span class="tt-track-icon tt-sun" aria-hidden="true">☀️</span>
       <span class="tt-track-icon tt-moon" aria-hidden="true">🌙</span>
@@ -134,46 +155,46 @@
   </div>
 </header>
 
+<!-- Workspace -->
 <div class="workspace">
 
-  <!-- Sidebar: File Manager -->
-  <div class="sidebar">
+  <!-- Sidebar -->
+  <aside class="sidebar glassmorphism" id="sidebar">
     <div class="sidebar-header">
       <span class="sidebar-title">Files</span>
-      <button class="add-file-btn" type="button" onclick="triggerFileInput()" title="Add files">+</button>
+      <button class="sidebar-add-btn" type="button" onclick="triggerFileInput()" title="Add files">+</button>
     </div>
 
-    <!-- Search files -->
     <div class="search-bar">
       <input class="search-input" id="fileSearch" type="text" placeholder="Filter files…" oninput="filterFiles(this.value)">
     </div>
 
-    <div class="drop-zone" id="sidebarDrop" onclick="triggerFileInput()" ondragover="onDragOver(event,'sidebarDrop')" ondragleave="onDragLeave('sidebarDrop')" ondrop="onDrop(event,'sidebarDrop')">
-      <div class="dz-icon">📂</div>
-      <strong>Drop files, folders or ZIP</strong>
-      <p>.js .ts .html .css .py<br>.c .cpp .json .md .zip · folders OK</p>
+    <div class="drop-zone enhanced" id="sidebarDrop" onclick="triggerFileInput()" ondragover="onDragOver(event,'sidebarDrop')" ondragleave="onDragLeave('sidebarDrop')" ondrop="onDrop(event,'sidebarDrop')">
+      <div class="drop-zone-icon">📂</div>
+      <strong class="drop-zone-title">Drop files, folders or ZIP</strong>
+      <p class="drop-zone-sub">.js .ts .html .css .py<br>.c .cpp .json .md .zip · folders OK</p>
     </div>
 
     <div class="file-list" id="fileList"></div>
 
-    <!-- Author card -->
-    <div class="sidebar-author">
-      <div class="sa-top">
-        <div class="sa-avatar">
+    <!-- Author Card -->
+    <div class="sidebar-author glassmorphism">
+      <div class="author-top">
+        <div class="author-avatar-lg">
           <img src="https://github.com/rhshourav.png" alt="rhshourav" onerror="this.parentElement.textContent='R'">
         </div>
-        <div class="sa-info">
-          <div class="sa-name">Shourav</div>
-          <div class="sa-handle">@rhshourav</div>
+        <div class="author-details">
+          <div class="author-display-name">Shourav</div>
+          <div class="author-handle">@rhshourav</div>
         </div>
       </div>
-      <div class="sa-bio">Built TokenCrush to stop burning context window on whitespace and comments.</div>
-      <div class="sa-links">
-        <a class="sa-link" href="https://github.com/rhshourav/TC" target="_blank" rel="noopener">
+      <div class="author-bio">Built TokenCrush to stop burning context window on whitespace and comments.</div>
+      <div class="author-links">
+        <a class="author-link" href="https://github.com/rhshourav/TC" target="_blank" rel="noopener">
           <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
           Repo
         </a>
-        <a class="sa-link" href="https://github.com/rhshourav" target="_blank" rel="noopener">
+        <a class="author-link" href="https://github.com/rhshourav" target="_blank" rel="noopener">
           <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
           Profile
         </a>
@@ -181,7 +202,6 @@
     </div>
 
     <div class="sidebar-footer">
-      <!-- Global token summary panel -->
       <div class="global-tok-panel" id="globalTokPanel">
         <div class="gtp-title">All Files · Summary</div>
         <div class="gtp-row">
@@ -206,17 +226,17 @@
           <span class="gtp-val green" id="gtpReduction">—</span>
         </div>
       </div>
-      <button class="compress-all-btn" id="compressAllBtn" type="button" onclick="compressAll()" disabled>
+      <button class="compress-all-btn enhanced" id="compressAllBtn" type="button" onclick="compressAll()" disabled>
         <span>⚡</span> Compress All
       </button>
       <div class="file-count-badge" id="fileCountBadge">No files loaded</div>
     </div>
-  </div>
+  </aside>
 
-  <!-- Resize handle: sidebar / editor -->
+  <!-- Resize Handle -->
   <div class="resize-handle" id="rh1" title="Drag to resize"></div>
 
-  <!-- Center: Editor -->
+  <!-- Editor Panel -->
   <div class="editor-panel" id="editorPanel">
     <div class="editor-header">
       <span class="editor-filename" id="editorFilename">No file selected</span>
@@ -225,55 +245,53 @@
     </div>
 
     <div class="controls-bar">
-      <div class="ctrl-row1">
-        <div class="tgl-grp">
-          <label class="tgl"><input type="checkbox" id="tglWS" checked><span class="tgl-s"></span></label>
-          <span class="tgl-lbl">Whitespace</span>
+      <div class="ctrl-row">
+        <div class="toggle-group">
+          <label class="toggle"><input type="checkbox" id="tglWS" checked><span class="toggle-track"></span></label>
+          <span class="toggle-label">Whitespace</span>
         </div>
-        <div class="sep"></div>
-        <div class="tgl-grp">
-          <label class="tgl"><input type="checkbox" id="tglCmt" checked><span class="tgl-s"></span></label>
-          <span class="tgl-lbl">Comments</span>
+        <div class="ctrl-divider"></div>
+        <div class="toggle-group">
+          <label class="toggle"><input type="checkbox" id="tglCmt" checked><span class="toggle-track"></span></label>
+          <span class="toggle-label">Comments</span>
         </div>
-        <div class="sep"></div>
-        <div class="tgl-grp">
-          <label class="tgl"><input type="checkbox" id="tglRename" checked><span class="tgl-s"></span></label>
-          <span class="tgl-lbl">Minify names</span>
+        <div class="ctrl-divider"></div>
+        <div class="toggle-group">
+          <label class="toggle"><input type="checkbox" id="tglRename" checked><span class="toggle-track"></span></label>
+          <span class="toggle-label">Minify names</span>
         </div>
-        <div class="sep"></div>
-        <div class="tgl-grp">
-          <label class="tgl"><input type="checkbox" id="tglCtx" checked><span class="tgl-s"></span></label>
-          <span class="tgl-lbl">Context map</span>
+        <div class="ctrl-divider"></div>
+        <div class="toggle-group">
+          <label class="toggle"><input type="checkbox" id="tglCtx" checked><span class="toggle-track"></span></label>
+          <span class="toggle-label">Context map</span>
         </div>
-        <div class="sep"></div>
-        <div class="tgl-grp">
-          <label class="tgl"><input type="checkbox" id="tglAutoCompress"><span class="tgl-s"></span></label>
-          <span class="tgl-lbl">Auto-compress</span>
+        <div class="ctrl-divider"></div>
+        <div class="toggle-group">
+          <label class="toggle"><input type="checkbox" id="tglAutoCompress"><span class="toggle-track"></span></label>
+          <span class="toggle-label">Auto-compress</span>
         </div>
       </div>
-      <div class="ctrl-row2">
-        <span class="ai-lbl">AI layer:</span>
-        <div class="spill active" data-s="none" onclick="setStrategy('none',this)"><span class="sd"></span>Off</div>
-        <div class="spill" data-s="pseudo" onclick="setStrategy('pseudo',this)"><span class="sd"></span>Pseudocode</div>
-        <div class="spill" data-s="semantic" onclick="setStrategy('semantic',this)"><span class="sd"></span>Semantic</div>
-        <div class="spill" data-s="deep" onclick="setStrategy('deep',this)"><span class="sd"></span>Deep (max)</div>
+      <div class="ctrl-row ai-row">
+        <span class="ai-label">AI layer:</span>
+        <div class="pill active" data-s="none" onclick="setStrategy('none',this)"><span class="pill-dot"></span>Off</div>
+        <div class="pill" data-s="pseudo" onclick="setStrategy('pseudo',this)"><span class="pill-dot"></span>Pseudocode</div>
+        <div class="pill" data-s="semantic" onclick="setStrategy('semantic',this)"><span class="pill-dot"></span>Semantic</div>
+        <div class="pill" data-s="deep" onclick="setStrategy('deep',this)"><span class="pill-dot"></span>Deep (max)</div>
       </div>
     </div>
 
-    <!-- Token budget bar -->
     <div class="budget-bar-wrap" id="budgetBarWrap" title="">
       <div class="budget-bar-fill" id="budgetBarFill"></div>
     </div>
 
     <div class="code-wrap" id="codeWrap" ondragover="onDragOver(event,'codeWrap')" ondragleave="onDragLeave('codeWrap')" ondrop="onDrop(event,'codeWrap')">
       <div class="empty-drop" id="editorEmpty">
-        <div class="ed-icon">📂</div>
+        <div class="empty-drop-icon">📂</div>
         <p>Select a file from the sidebar<br>or drop files / a ZIP here</p>
       </div>
       <textarea class="code-editor hidden" id="codeEditor" placeholder="// Paste code here or select a file…" oninput="onEditorInput()"></textarea>
 
-      <!-- Find bar -->
-      <div class="find-bar" id="findBar">
+      <div class="find-bar enhanced" id="findBar">
         <div class="find-row">
           <input id="findInput" type="text" placeholder="Find…" oninput="doFind()" class="find-input">
           <span class="find-info" id="findInfo">0/0</span>
@@ -289,65 +307,59 @@
       </div>
     </div>
 
-    <!-- Editor meta: line/char count -->
     <div class="editor-meta-row hidden" id="editorMetaRow">
-      <span class="em-stat">Lines: <span id="emLines">0</span></span>
-      <span class="em-stat">Chars: <span id="emChars">0</span></span>
-      <span class="em-stat">Cursor: <span id="emCursor">1:1</span></span>
+      <span class="meta-stat">Lines: <span id="emLines">0</span></span>
+      <span class="meta-stat">Chars: <span id="emChars">0</span></span>
+      <span class="meta-stat">Cursor: <span id="emCursor">1:1</span></span>
     </div>
   </div>
 
-  <!-- Resize handle: editor / output -->
+  <!-- Resize Handle -->
   <div class="resize-handle" id="rh2" title="Drag to resize"></div>
 
-  <!-- Right: Output -->
-  <div class="output-panel" id="outputPanel">
-
-    <!-- Header -->
-    <div class="out-header">
-      <span class="out-header-label">Output</span>
-      <span class="out-filename-pill" id="outFilename" title=""></span>
+  <!-- Output Panel -->
+  <div class="output-panel glassmorphism" id="outputPanel">
+    <div class="output-header">
+      <span class="output-label">Output</span>
+      <span class="output-filename" id="outFilename" title=""></span>
     </div>
 
-    <!-- Tabs -->
-    <div class="out-tabs">
-      <div class="out-tab active" data-tab="compressed" onclick="switchTab('compressed',this)">
+    <div class="output-tabs">
+      <div class="tab animated active" data-tab="compressed" onclick="switchTab('compressed',this)">
         <span class="tab-icon">⚡</span>Compressed
       </div>
-      <div class="out-tab" data-tab="diff" onclick="switchTab('diff',this)">
+      <div class="tab animated" data-tab="diff" onclick="switchTab('diff',this)">
         <span class="tab-icon">±</span>Diff
       </div>
-      <div class="out-tab" data-tab="prompt" onclick="switchTab('prompt',this)">
+      <div class="tab animated" data-tab="prompt" onclick="switchTab('prompt',this)">
         <span class="tab-icon">✦</span>Prompt
       </div>
-      <div class="out-tab" data-tab="context" onclick="switchTab('context',this)">
+      <div class="tab animated" data-tab="context" onclick="switchTab('context',this)">
         <span class="tab-icon">🔗</span>Context Map
       </div>
-      <div class="out-tab" data-tab="bundle" onclick="switchTab('bundle',this)">
+      <div class="tab animated" data-tab="bundle" onclick="switchTab('bundle',this)">
         <span class="tab-icon">◈</span>Bundle
       </div>
-      <div class="out-tab" data-tab="history" onclick="switchTab('history',this)">
+      <div class="tab animated" data-tab="history" onclick="switchTab('history',this)">
         <span class="tab-icon">◷</span>History
       </div>
-      <div class="out-tab" data-tab="allstats" onclick="switchTab('allstats',this)">
+      <div class="tab animated" data-tab="allstats" onclick="switchTab('allstats',this)">
         <span class="tab-icon">⊞</span>All Stats
       </div>
-      <div class="out-tab" data-tab="chat" onclick="switchTab('chat',this)">
+      <div class="tab animated" data-tab="chat" onclick="switchTab('chat',this)">
         <span class="tab-icon">💬</span>Chat
       </div>
     </div>
 
-    <!-- Progress strip -->
     <div class="progress-strip"><div class="progress-fill" id="progressFill"></div></div>
 
-    <!-- Content area -->
-    <div class="out-content">
-      <div class="out-empty" id="outEmpty">
-        <div class="oe-icon">⚡</div>
+    <div class="output-content">
+      <div class="output-empty" id="outEmpty">
+        <div class="output-empty-icon">⚡</div>
         <p>Hit <strong>Compress</strong> to crunch your code<br>and reclaim context window space.</p>
-        <span class="out-empty-hint">⌘ + ↵ to compress fast</span>
+        <span class="output-empty-hint">⌘ + ↵ to compress fast</span>
       </div>
-      <textarea class="out-code hidden" id="outCode" readonly></textarea>
+      <textarea class="output-code hidden" id="outCode" readonly></textarea>
       <div class="diff-view" id="diffView"></div>
       <div class="prompt-view" id="promptView"></div>
       <div class="context-view" id="contextView"></div>
@@ -375,7 +387,7 @@
               <span class="chat-req-status">Checking...</span>
             </div>
           </div>
-          <button class="btn btn-accent chat-download-btn" id="chatDownloadBtn" type="button" onclick="chatDownloadModel()">Download Model</button>
+          <button class="btn btn-primary chat-download-btn btn-glow" id="chatDownloadBtn" type="button" onclick="chatDownloadModel()">Download Model</button>
           <div class="chat-progress hidden" id="chatProgress">
             <div class="chat-progress-track"><div class="chat-progress-fill" id="chatProgressFill"></div></div>
             <div class="chat-progress-text" id="chatProgressText">Preparing...</div>
@@ -408,32 +420,30 @@
       </div>
     </div>
 
-    <!-- AI summary -->
-    <div class="pseudo-bar" id="pseudoBar">
-      <div class="pseudo-lbl">AI Summary</div>
-      <div class="pseudo-text" id="pseudoText"></div>
+    <div class="ai-summary" id="pseudoBar">
+      <div class="ai-summary-label">AI Summary</div>
+      <div class="ai-summary-text" id="pseudoText"></div>
     </div>
 
-    <!-- Stats block -->
-    <div class="stats-bar" id="statsBar">
+    <div class="stats-bar glassmorphism" id="statsBar">
       <div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-v neutral" id="sIn">0</div>
-          <div class="stat-l">Input tokens</div>
+        <div class="stat-card stat-card-glow">
+          <div class="stat-value neutral" id="sIn">0</div>
+          <div class="stat-label">Input tokens</div>
         </div>
-        <div class="stat-card">
-          <div class="stat-v g" id="sOut">0</div>
-          <div class="stat-l">Output tokens</div>
+        <div class="stat-card stat-card-glow">
+          <div class="stat-value green" id="sOut">0</div>
+          <div class="stat-label">Output tokens</div>
         </div>
-        <div class="stat-card">
-          <div class="stat-v a" id="sPct">0%</div>
-          <div class="stat-l">Reduction</div>
+        <div class="stat-card stat-card-glow">
+          <div class="stat-value accent" id="sPct">0%</div>
+          <div class="stat-label">Reduction</div>
         </div>
       </div>
-      <div class="stats-bottom-row">
+      <div class="stats-bottom">
         <div class="gauge-wrap">
           <div class="gauge-header">
-            <span class="gauge-lbl" id="gaugeLbl">Tokens used</span>
+            <span class="gauge-label" id="gaugeLbl">Tokens used</span>
             <span class="gauge-pct" id="gaugePct">—</span>
           </div>
           <div class="gauge-track">
@@ -441,32 +451,29 @@
           </div>
         </div>
         <div class="savings-badge" id="savingsBadge">-0</div>
-        <button class="copy-btn" id="copyBtn" type="button" onclick="copyOutput()">Copy</button>
+        <button class="copy-btn btn-glow" id="copyBtn" type="button" onclick="copyOutput()">Copy</button>
       </div>
     </div>
 
-    <!-- Context map drawer -->
     <div class="ctx-drawer" id="ctxDrawer">
-      <div class="ctx-drawer-hdr" onclick="toggleCtx()">
+      <div class="ctx-drawer-header" onclick="toggleCtx()">
         <span class="ctx-drawer-title">Identifier map</span>
         <span class="ctx-badge" id="ctxBadge">0</span>
-        <span class="ctx-chev" id="ctxChev">▲</span>
+        <span class="ctx-chevron" id="ctxChev">▲</span>
       </div>
       <div class="ctx-body" id="ctxBody"></div>
     </div>
 
-    <!-- Prefix row -->
     <div class="prefix-row">
-      <span class="prefix-lbl">Prefix</span>
+      <span class="prefix-label">Prefix</span>
       <input class="prefix-input" id="prefixInput" type="text" value="[COMPRESSED — see context map for identifier mappings]">
-      <button class="btn btn-accent btn-apply" type="button" onclick="rebuildPrompt()">Apply</button>
+      <button class="btn btn-primary btn-apply btn-glow" type="button" onclick="rebuildPrompt()">Apply</button>
     </div>
   </div>
-  </div>
+</div>
 
-  <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+<div class="sidebar-overlay" onclick="toggleSidebar()"></div>
 
 <script type="module" src="js/app.js"></script>
-
 </body>
 </html>
