@@ -6,7 +6,7 @@ import { addFile, addFolder, clearAll, compressFileById, compressAllFiles } from
 import { getLanguage, isCompressible, getLangBadgeClass } from './languages/index.js';
 import { renderFileList, updateFileCount, filterFiles } from './ui/sidebar.js';
 import { selectFile, showEditorEmpty, updateEditorMeta, onEditorInput, updateBudgetBar, onFileSelect, onRenderOutput } from './ui/editor.js';
-import { renderOutput, showOutEmpty, switchTab, setProgress, copyOutput, exportBundle, showToast, buildBundleView, buildHistoryView, toggleCtx } from './ui/output.js';
+import { renderOutput, showOutEmpty, switchTab, setProgress, copyOutput, exportBundle, showToast, buildBundleView, buildHistoryView, toggleCtx, rebuildPrompt } from './ui/output.js';
 import { initTheme, toggleTheme } from './ui/theme.js';
 import { openFindBar, closeFindBar, doFind, findNext, findPrev, doReplace, doReplaceAll } from './ui/find.js';
 import { initChat, chatSend, chatKeydown, chatDownloadModel, chatClear, chatClearContext, chatGenReadme, setChatContext } from './ui/chat.js';
@@ -650,6 +650,7 @@ document.addEventListener('DOMContentLoaded', () => {
   window.chatClear = chatClear;
   window.chatClearContext = chatClearContext;
   window.chatGenReadme = chatGenReadme;
+window.rebuildPrompt = rebuildPrompt;
 
   renderFileList();
   updateFileCount();

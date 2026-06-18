@@ -84,7 +84,7 @@ export function updateTokenPill(tok) {
   if (!pill) return;
   const ctx = 200000;
   const pct = (tok / ctx) * 100;
-  pill.className = 'token-pill' + (pct > 80 ? ' red' : pct > 50 ? ' amber' : '');
+  pill.className = 'token-pill' + (pct > 80 ? ' danger' : pct > 50 ? ' warn' : '');
 }
 
 export function updateBudgetBar() {

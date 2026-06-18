@@ -60,7 +60,7 @@ export function updateGauge(tokens) {
   const fill = document.getElementById('gaugeFill');
   const lbl = document.getElementById('gaugeLbl');
   const pctEl = document.getElementById('gaugePct');
-  if (fill) { fill.style.width = pct + '%'; fill.className = 'gauge-fill' + (pct > 80 ? ' warn' : pct > 50 ? ' mid' : ' low'); }
+  if (fill) { fill.style.width = pct + '%'; fill.className = 'gauge-fill' + (pct > 80 ? ' high' : pct > 50 ? ' mid' : ' low'); }
   if (lbl) lbl.textContent = 'Tokens used';
   if (pctEl) pctEl.textContent = pct + '%';
 }
@@ -246,7 +246,7 @@ export function switchTab(name) {
   if (chatPanel) chatPanel.classList.add('hidden');
   if (ctxDrawer && name !== 'context') ctxDrawer.classList.remove('open');
   if (pseudoBar && name !== 'compressed') pseudoBar.classList.remove('show');
-  document.querySelectorAll('.diff-view,.prompt-view,.bundle-view,.history-view').forEach(d => d.classList.remove('show'));
+  document.querySelectorAll('.diff-view,.prompt-view,.bundle-view,.history-view,.allstats-view').forEach(d => d.classList.remove('show'));
 
   if (name === 'chat') {
     if (chatPanel) chatPanel.classList.remove('hidden');
@@ -360,4 +360,16 @@ export function exportBundle() {
   a.click();
   URL.revokeObjectURL(url);
   showToast('Bundle exported');
+}
+
+export function rebuildPrompt() {
+  const activeFileId = state.activeFileId;
+  const f = activeFileId ? state.files.get(activeFileId) : null;
+  if (!f || !f.compressed) {
+    showToast('Compress a file first', 'err');
+    return;
+  }
+  buildPromptView(f);
+  switchTab('prompt');
+  showToast('Prompt rebuilt');
 }

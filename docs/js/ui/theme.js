@@ -10,7 +10,7 @@ export function applyTheme(theme) {
   }
 
   const meta = document.getElementById('themeColorMeta');
-  if (meta) meta.content = theme === 'dark' ? '#0b0b0e' : '#f4f4f7';
+  if (meta) meta.content = theme === 'dark' ? '#0b1326' : '#f8fafc';
 }
 
 export function toggleTheme() {
