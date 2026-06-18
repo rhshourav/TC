@@ -14,7 +14,7 @@ export function renderOutput(id) {
   const ofn = document.getElementById('outFilename');
 
   if (oe) oe.style.display = 'none';
-  if (oc) { oc.value = f.compressed; oc.style.display = 'block'; }
+  if (oc) { oc.classList.remove('hidden'); oc.value = f.compressed; oc.style.display = 'block'; }
   if (sb) sb.style.display = 'block';
   if (ofn) { ofn.textContent = f.name; ofn.title = f.name; }
 
@@ -43,7 +43,7 @@ export function showOutEmpty() {
   const sb = document.getElementById('statsBar');
 
   if (oe) oe.style.display = 'flex';
-  if (oc) oc.style.display = 'none';
+  if (oc) { oc.classList.add('hidden'); oc.style.display = 'none'; }
   if (sb) sb.style.display = 'none';
 
   const pseudo = document.getElementById('pseudoBar');
@@ -242,11 +242,11 @@ export function switchTab(name) {
   const pseudoBar = document.getElementById('pseudoBar');
 
   if (outEmpty) outEmpty.style.display = 'none';
-  if (outCode) outCode.style.display = 'none';
+  if (outCode) { outCode.classList.add('hidden'); outCode.style.display = 'none'; }
   if (chatPanel) chatPanel.classList.add('hidden');
   if (ctxDrawer && name !== 'context') ctxDrawer.classList.remove('open');
   if (pseudoBar && name !== 'compressed') pseudoBar.classList.remove('show');
-  document.querySelectorAll('.diff-view,.prompt-view,.bundle-view,.history-view,.allstats-view').forEach(d => d.classList.remove('show'));
+  document.querySelectorAll('.diff-view,.prompt-view,.context-view,.bundle-view,.history-view,.allstats-view').forEach(d => d.classList.remove('show'));
 
   if (name === 'chat') {
     if (chatPanel) chatPanel.classList.remove('hidden');
@@ -260,10 +260,11 @@ export function switchTab(name) {
 
   if (name === 'compressed') {
     if (f && f.compressed) {
-      if (outCode) { outCode.value = f.compressed; outCode.style.display = 'block'; }
+      if (outCode) { outCode.classList.remove('hidden'); outCode.value = f.compressed; outCode.style.display = 'block'; }
     } else {
       if (outEmpty) outEmpty.style.display = 'flex';
     }
+    if (pseudoBar) pseudoBar.classList.add('show');
     return;
   }
 
