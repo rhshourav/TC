@@ -1,4 +1,5 @@
 import { state } from '../core/state.js';
+import { escH } from '../core/helpers.js';
 
 let generator = null;
 let modelReady = false;
@@ -337,6 +338,39 @@ export function chatClear() {
   `;
 }
 
+function renderMarkdown(md) {
+  // Escape HTML first, then selectively re-render markdown constructs
+  const esc = String(md)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+
+  return esc
+    // Fenced code blocks (``` or ~~~)
+    .replace(/```[\w]*\n([\s\S]*?)```/g, '<pre class="readme-code"><code>$1</code></pre>')
+    .replace(/~~~[\w]*\n([\s\S]*?)~~~/g, '<pre class="readme-code"><code>$1</code></pre>')
+    // Headings
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+    // Bold / italic
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    // Inline code
+    .replace(/`([^`]+)`/g, '<code class="readme-inline-code">$1</code>')
+    // Unordered lists
+    .replace(/^[-*+] (.+)$/gm, '<li>$1</li>')
+    .replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>')
+    // Ordered lists
+    .replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
+    // Horizontal rule
+    .replace(/^---$/gm, '<hr>')
+    // Paragraphs (blank-line separated blocks that aren't already tags)
+    .replace(/\n\n(?!<)/g, '</p><p>')
+    .replace(/^(?!<)/, '<p>')
+    .replace(/(?<!>)$/, '</p>');
+}
+
 export async function chatGenReadme() {
   if (!modelReady || isLoading) return;
 
@@ -405,7 +439,7 @@ Here are the files:\n${codeSummary}`;
             <span>Generated README.md</span>
             <button class="btn btn-sm" onclick="navigator.clipboard.writeText(this.closest('.chat-msg').querySelector('.readme-body').textContent)">Copy</button>
           </div>
-          <div class="readme-body">${escH(response)}</div>
+          <div class="readme-body">${renderMarkdown(response)}</div>
         `;
         container.appendChild(readmeDiv);
         container.scrollTop = container.scrollHeight;
@@ -421,6 +455,4 @@ Here are the files:\n${codeSummary}`;
   isLoading = false;
 }
 
-function escH(s) {
-  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
+
