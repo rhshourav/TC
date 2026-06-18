@@ -57,20 +57,6 @@
         "mcp"
       ],
       "enabled": true
-    },
-    "claude-code": {
-      "type": "local",
-      "command": [
-        "C:\\Users\\546493.UNIMAS\\.local\\bin\\uvx.exe",
-        "--from",
-        "mcp-claude-code",
-        "claudecode",
-        "--allow-path",
-        "D:\\GITHUB\\TC",
-        "--project",
-        "D:\\GITHUB\\TC"
-      ],
-      "enabled": true
     }
   }
 }
