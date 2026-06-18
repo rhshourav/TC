@@ -4,31 +4,33 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
 <title>Games — TokenCrush</title>
-<meta name="theme-color" content="#0b0b0e">
+<meta name="theme-color" content="#09090c">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#0b0b0e;--surface:#141418;--surface2:#1e1e26;--surface3:#28282f;
-  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);
-  --text:#ededf0;--text2:#a0a0aa;--muted:#606068;
-  --accent:#7c6dfa;--accent2:#a393ff;--green:#3ecf8e;--amber:#f5a623;
+  --bg:#09090c;--surface:#111115;--surface2:#1a1a20;--surface3:#23232b;
+  --border:rgba(255,255,255,0.06);--border2:rgba(255,255,255,0.10);
+  --text:#eeeef2;--text2:#9898a4;--muted:#55555e;
+  --accent:#6c5ce7;--accent2:#a29bfe;--green:#00d2a0;--amber:#ffa502;
   --radius:12px;--radius-lg:16px;
 }
 :root[data-theme="light"]{
-  --bg:#f4f4f7;--surface:#ffffff;--surface2:#f0f0f3;--surface3:#e6e6ec;
-  --border:rgba(20,20,30,0.08);--border2:rgba(20,20,30,0.14);
-  --text:#14141a;--text2:#55555f;--muted:#84848d;
-  --accent:#5b3fe0;--accent2:#4c2fd1;--green:#0c8a57;--amber:#9c6500;
+  --bg:#f2f2f6;--surface:#ffffff;--surface2:#f5f5f8;--surface3:#e8e8ee;
+  --border:rgba(20,20,30,0.07);--border2:rgba(20,20,30,0.12);
+  --text:#111118;--text2:#5a5a68;--muted:#9090a0;
+  --accent:#5b3fe0;--accent2:#4c2fd1;--green:#00875a;--amber:#b87a00;
 }
 body{
   background:var(--bg);color:var(--text);
-  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  font-family:-apple-system,'Inter','Segoe UI',sans-serif;
   min-height:100vh;min-height:100dvh;
   -webkit-tap-highlight-color:transparent;
   -webkit-user-select:none;user-select:none;
   overflow-x:hidden;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
 }
 
 /* Header */
@@ -74,7 +76,9 @@ body{
   width:52px;height:52px;border-radius:var(--radius);
   display:flex;align-items:center;justify-content:center;
   font-size:26px;flex-shrink:0;
+  transition:transform .2s cubic-bezier(.34,1.56,.64,1);
 }
+.game-card:hover .game-icon{transform:scale(1.05)}
 .game-icon.dungeon{background:linear-gradient(135deg,#2d1b4e,#1a1040)}
 .game-icon.lighthouse{background:linear-gradient(135deg,#1a3a5c,#0d2137)}
 .game-icon.coming{background:var(--surface3);opacity:0.5}
@@ -86,7 +90,7 @@ body{
   font-size:9px;padding:3px 7px;border-radius:6px;font-weight:600;
   letter-spacing:0.5px;text-transform:uppercase;flex-shrink:0;
 }
-.game-badge.play{background:rgba(62,207,142,.15);color:var(--green);border:1px solid rgba(62,207,142,.25)}
+.game-badge.play{background:rgba(0,210,160,.12);color:var(--green);border:1px solid rgba(0,210,160,.22)}
 .game-badge.soon{background:var(--surface3);color:var(--muted);border:1px solid var(--border2)}
 
 .game-card.coming-soon{pointer-events:none}
