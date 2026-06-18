@@ -238,9 +238,14 @@ export function switchTab(name) {
   const outEmpty = document.getElementById('outEmpty');
   const outCode = document.getElementById('outCode');
 
+  const ctxDrawer = document.getElementById('ctxDrawer');
+  const pseudoBar = document.getElementById('pseudoBar');
+
   if (outEmpty) outEmpty.style.display = 'none';
   if (outCode) outCode.style.display = 'none';
   if (chatPanel) chatPanel.classList.add('hidden');
+  if (ctxDrawer && name !== 'context') ctxDrawer.classList.remove('open');
+  if (pseudoBar && name !== 'compressed') pseudoBar.classList.remove('show');
   document.querySelectorAll('.diff-view,.prompt-view,.bundle-view,.history-view').forEach(d => d.classList.remove('show'));
 
   if (name === 'chat') {
